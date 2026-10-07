@@ -168,10 +168,23 @@
     import { signIn, signUp, getSession, listDepartments } from './js/api.js';
     import { toast } from './js/app.js';
 
+    function getNextPage() {
+      const next = new URLSearchParams(location.search).get('next');
+      if (!next) return 'events.html';
+
+      try {
+        const url = new URL(next, location.origin);
+        if (url.origin !== location.origin) return 'events.html';
+        return `${url.pathname}${url.search}${url.hash}`;
+      } catch {
+        return 'events.html';
+      }
+    }
+
     // Redirect if already logged in
     getSession().then(s => {
       if (s) {
-        const next = new URLSearchParams(location.search).get('next') || 'events.html';
+        const next = getNextPage();
         location.href = next;
       }
     });
@@ -182,7 +195,10 @@
       sel.innerHTML = '<option value="">Select department</option>' +
         depts.map(d => `<option value="${d.name}">${d.name}</option>`).join('');
     }).catch(() => {
-      document.getElementById('su-dept').innerHTML = '<option value="">CSE</option><option value="EEE">EEE</option><option value="BBA">BBA</option>';
+      document.getElementById('su-dept').innerHTML = `
+        <option value="">Select department</option>
+        ${['CSE', 'EEE', 'BBA', 'English', 'Civil Engineering']
+          .map(name => `<option value="${name}">${name}</option>`).join('')}`;
     });
 
     window.switchTab = (tab) => {
@@ -235,7 +251,7 @@
       try {
         await signIn(email, password);
         toast('Welcome back! 🎉', 'success');
-        const next = new URLSearchParams(location.search).get('next') || 'events.html';
+        const next = getNextPage();
         setTimeout(() => location.href = next, 800);
       } catch (err) {
         showErr('login-error', err.message || 'Login failed. Check your credentials.');
@@ -277,7 +293,7 @@
           document.getElementById('panel-confirm').classList.remove('hidden');
         } else {
           toast('Account created! 🎉', 'success');
-          const next = new URLSearchParams(location.search).get('next') || 'events.html';
+          const next = getNextPage();
           setTimeout(() => location.href = next, 800);
         }
       } catch (err) {

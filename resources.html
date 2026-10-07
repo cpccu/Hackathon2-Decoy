@@ -359,9 +359,9 @@
       const orig = btn.innerHTML;
       btn.innerHTML = '⏳ Preparing…'; btn.disabled = true;
       try {
-        const url = await getDownloadUrl(filePath);
+        const url = await getDownloadUrl(filePath, fileName);
         const a = document.createElement('a');
-        a.href = url; a.download = fileName; a.target = '_blank';
+        a.href = url; a.download = fileName;
         document.body.appendChild(a); a.click(); document.body.removeChild(a);
       } catch (err) {
         toast('Download failed: ' + err.message, 'error');

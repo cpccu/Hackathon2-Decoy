@@ -1,35 +1,36 @@
 /**
  * api.js – The ONLY file that imports from Supabase.
- * Statically imports both implementations and delegates based on USE_MOCK.
- * This avoids top-level await import() which breaks in many environments.
+ * Loads only the implementation selected by USE_MOCK.
  */
 
 import { USE_MOCK } from './config.js';
-import * as mock from './api.mock.js';
-import * as real from './api.real.js';
 
-const impl = USE_MOCK ? mock : real;
+const implPromise = USE_MOCK
+  ? import('./api.mock.js')
+  : import('./api.real.js');
 
-export const signUp               = (...a) => impl.signUp(...a);
-export const signIn               = (...a) => impl.signIn(...a);
-export const signOut              = (...a) => impl.signOut(...a);
-export const getSession           = (...a) => impl.getSession(...a);
-export const getProfile           = (...a) => impl.getProfile(...a);
-export const listClubs            = (...a) => impl.listClubs(...a);
-export const listEvents           = (...a) => impl.listEvents(...a);
-export const getEvent             = (...a) => impl.getEvent(...a);
-export const createEvent          = (...a) => impl.createEvent(...a);
-export const deleteEvent          = (...a) => impl.deleteEvent(...a);
-export const getRsvpCounts        = (...a) => impl.getRsvpCounts(...a);
-export const getMyRsvps           = (...a) => impl.getMyRsvps(...a);
-export const getMyRsvpForEvent    = (...a) => impl.getMyRsvpForEvent(...a);
-export const createRsvp           = (...a) => impl.createRsvp(...a);
-export const cancelRsvp           = (...a) => impl.cancelRsvp(...a);
-export const getEventCheckinStats = (...a) => impl.getEventCheckinStats(...a);
-export const checkIn              = (...a) => impl.checkIn(...a);
-export const listDepartments      = (...a) => impl.listDepartments(...a);
-export const listCourses          = (...a) => impl.listCourses(...a);
-export const listResources        = (...a) => impl.listResources(...a);
-export const uploadResource       = (...a) => impl.uploadResource(...a);
-export const deleteResource       = (...a) => impl.deleteResource(...a);
-export const getDownloadUrl       = (...a) => impl.getDownloadUrl(...a);
+const call = (method, ...args) => implPromise.then(impl => impl[method](...args));
+
+export const signUp               = (...a) => call('signUp', ...a);
+export const signIn               = (...a) => call('signIn', ...a);
+export const signOut              = (...a) => call('signOut', ...a);
+export const getSession           = (...a) => call('getSession', ...a);
+export const getProfile           = (...a) => call('getProfile', ...a);
+export const listClubs            = (...a) => call('listClubs', ...a);
+export const listEvents           = (...a) => call('listEvents', ...a);
+export const getEvent             = (...a) => call('getEvent', ...a);
+export const createEvent          = (...a) => call('createEvent', ...a);
+export const deleteEvent          = (...a) => call('deleteEvent', ...a);
+export const getRsvpCounts        = (...a) => call('getRsvpCounts', ...a);
+export const getMyRsvps           = (...a) => call('getMyRsvps', ...a);
+export const getMyRsvpForEvent    = (...a) => call('getMyRsvpForEvent', ...a);
+export const createRsvp           = (...a) => call('createRsvp', ...a);
+export const cancelRsvp           = (...a) => call('cancelRsvp', ...a);
+export const getEventCheckinStats = (...a) => call('getEventCheckinStats', ...a);
+export const checkIn              = (...a) => call('checkIn', ...a);
+export const listDepartments      = (...a) => call('listDepartments', ...a);
+export const listCourses          = (...a) => call('listCourses', ...a);
+export const listResources        = (...a) => call('listResources', ...a);
+export const uploadResource       = (...a) => call('uploadResource', ...a);
+export const deleteResource       = (...a) => call('deleteResource', ...a);
+export const getDownloadUrl       = (...a) => call('getDownloadUrl', ...a);
