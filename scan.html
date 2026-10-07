@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QR Scanner – CampusOS</title>
+  <meta name="description" content="Admin QR check-in scanner for CampusOS events.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { theme: { extend: {
+      colors: {
+        brand: { 50:'#eef4ff', 500:'#2563eb', 600:'#1d4ed8', 700:'#1e40af' },
+        accent: '#f59e0b', ink: '#0f172a', muted: '#64748b', surface: '#f8fafc'
+      },
+      fontFamily: { sans: ['Inter','system-ui','sans-serif'] }
+    }}}
+  </script>
+  <link rel="stylesheet" href="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.css">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    #qr-reader { border: none !important; width: 100% !important; }
+    #qr-reader video { border-radius: 16px !important; width: 100% !important; }
+    #qr-reader__scan_region { border-radius: 16px !important; }
+  </style>
+</head>
+<body class="bg-surface text-ink min-h-screen">
+  <div id="navbar"></div>
+
+  <main class="max-w-2xl mx-auto px-4 sm:px-6 py-8">
+    <div class="mb-8">
+      <h1 class="text-3xl font-extrabold text-ink">QR Check-in Scanner</h1>
+      <p class="text-muted mt-1">Admin only · Scan passes to check students in</p>
+    </div>
+
+    <!-- Event selector -->
+    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 mb-5">
+      <label class="block text-xs font-semibold uppercase text-muted mb-2 tracking-wide">Select Event</label>
+      <select id="event-select" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm bg-white">
+        <option value="">Loading events…</option>
+      </select>
+      <!-- Counter -->
+      <div id="counter" class="hidden mt-3 flex items-center gap-2 text-sm">
+        <span class="text-muted">Checked in:</span>
+        <span id="counter-val" class="font-bold text-brand-600 text-lg">—</span>
+        <span class="text-muted">/ <span id="counter-total">—</span></span>
+        <!-- Progress bar -->
+        <div class="flex-1 bg-slate-200 rounded-full h-2 ml-2">
+          <div id="counter-bar" class="bg-brand-600 h-2 rounded-full transition-all duration-500" style="width:0%"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scanner -->
+    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 mb-5">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="font-bold text-ink">Camera Scanner</h2>
+        <div class="flex gap-2">
+          <button id="start-btn" class="bg-brand-600 text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-brand-700 transition">▶ Start</button>
+          <button id="stop-btn"  class="hidden bg-slate-200 text-ink text-sm font-semibold px-4 py-2 rounded-xl hover:bg-slate-300 transition">⏹ Stop</button>
+        </div>
+      </div>
+      <div id="qr-reader" class="rounded-2xl overflow-hidden bg-slate-100 min-h-[200px]"></div>
+      <p id="camera-denied" class="hidden text-red-500 text-sm mt-2 text-center">
+        📵 Camera permission denied. Use manual entry below.
+      </p>
+    </div>
+
+    <!-- Result panel -->
+    <div id="result-panel" class="hidden rounded-2xl p-5 mb-5">
+      <div id="result-icon" class="text-4xl mb-2 text-center"></div>
+      <div id="result-text" class="text-lg font-bold text-center mb-1"></div>
+      <div id="result-sub"  class="text-sm text-center text-muted"></div>
+    </div>
+
+    <!-- Manual entry fallback -->
+    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 mb-5">
+      <h2 class="font-bold text-ink mb-3">Manual Entry</h2>
+      <div class="flex gap-3">
+        <input id="manual-input" type="text" placeholder="Paste RSVP UUID here…" class="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm font-mono">
+        <button id="manual-btn" class="bg-brand-600 text-white font-bold px-5 py-2.5 rounded-xl hover:bg-brand-700 transition text-sm">Check In</button>
+      </div>
+    </div>
+
+    <!-- Recent scans -->
+    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+      <h2 class="font-bold text-ink mb-3">Recent Scans <span class="text-muted font-normal text-sm">(this session)</span></h2>
+      <div id="scans-list" class="space-y-2">
+        <p class="text-muted text-sm text-center py-4">No scans yet</p>
+      </div>
+    </div>
+  </main>
+
+  <div id="toast-root" class="fixed bottom-4 right-4 z-[200] max-w-sm w-full"></div>
+
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <script type="module">
+    import { renderNavbar, requireAdmin, toast, escapeHtml, timeAgo } from './js/app.js';
+    import { listEvents, checkIn, getEventCheckinStats, getProfile } from './js/api.js';
+
+    let _scanner   = null;
+    let _scanning  = false;
+    let _lastScan  = '';
+    let _lastTime  = 0;
+    let _debounceMs = 3000;
+    let _scans     = [];
+    let _selectedEventId = '';
+
+    async function init() {
+      renderNavbar();
+      try { await requireAdmin(); } catch { return; }
+
+      // Load events
+      const events = await listEvents({ range: 'all' });
+      const sel = document.getElementById('event-select');
+      sel.innerHTML = '<option value="">— Pick an event —</option>' +
+        events.map(e => {
+          const d = new Date(e.starts_at);
+          return `<option value="${e.id}">${escapeHtml(e.title)} · ${d.toLocaleDateString('en-GB')}</option>`;
+        }).join('');
+
+      sel.addEventListener('change', async () => {
+        _selectedEventId = sel.value;
+        if (_selectedEventId) await refreshCounter();
+        else {
+          document.getElementById('counter').classList.add('hidden');
+        }
+      });
+
+      document.getElementById('start-btn').addEventListener('click', startScanner);
+      document.getElementById('stop-btn').addEventListener('click', stopScanner);
+      document.getElementById('manual-btn').addEventListener('click', manualCheckin);
+      document.getElementById('manual-input').addEventListener('keydown', e => {
+        if (e.key === 'Enter') manualCheckin();
+      });
+    }
+
+    async function refreshCounter() {
+      if (!_selectedEventId) return;
+      const { total, checkedIn } = await getEventCheckinStats(_selectedEventId);
+      const pct = total > 0 ? Math.round((checkedIn / total) * 100) : 0;
+      document.getElementById('counter').classList.remove('hidden');
+      document.getElementById('counter-val').textContent   = checkedIn;
+      document.getElementById('counter-total').textContent = total;
+      document.getElementById('counter-bar').style.width   = pct + '%';
+    }
+
+    async function processCode(rsvpId) {
+      if (!rsvpId || rsvpId.trim() === '') return;
+      const now = Date.now();
+      if (rsvpId === _lastScan && now - _lastTime < _debounceMs) return;
+      _lastScan = rsvpId; _lastTime = now;
+
+      const result = await checkIn(rsvpId.trim());
+      showResult(result, rsvpId);
+      await refreshCounter();
+    }
+
+    function showResult(result, rsvpId) {
+      const panel = document.getElementById('result-panel');
+      const icon  = document.getElementById('result-icon');
+      const text  = document.getElementById('result-text');
+      const sub   = document.getElementById('result-sub');
+      panel.classList.remove('hidden', 'bg-emerald-50','bg-amber-50','bg-red-50');
+
+      if (result.status === 'ok') {
+        panel.classList.add('bg-emerald-50');
+        icon.textContent = '✅';
+        text.textContent = `${result.name} checked in!`;
+        sub.textContent  = `Event: ${result.event}`;
+        if (_selectedEventId && result.event_id !== _selectedEventId) {
+          sub.textContent += ' ⚠️ (Different event than selected!)';
+        }
+        addScanEntry('ok', result.name, result.event);
+      } else if (result.status === 'already') {
+        panel.classList.add('bg-amber-50');
+        icon.textContent = '⚠️';
+        text.textContent = `Already checked in`;
+        sub.textContent  = `${result.name} · ${result.event} · ${timeAgo(result.checked_in_at)}`;
+        addScanEntry('already', result.name, result.event);
+      } else if (result.status === 'forbidden') {
+        panel.classList.add('bg-red-50');
+        icon.textContent = '🚫';
+        text.textContent = 'Not authorized';
+        sub.textContent  = 'Only admins can check in students.';
+        addScanEntry('invalid', 'Forbidden', '');
+      } else {
+        panel.classList.add('bg-red-50');
+        icon.textContent = '❌';
+        text.textContent = 'Invalid pass';
+        sub.textContent  = `RSVP UUID not found: ${rsvpId.slice(0,12)}…`;
+        addScanEntry('invalid', 'Invalid', '');
+      }
+    }
+
+    function addScanEntry(status, name, event) {
+      _scans.unshift({ status, name, event, time: new Date() });
+      const list = document.getElementById('scans-list');
+      const colors = { ok:'text-emerald-700 bg-emerald-50', already:'text-amber-700 bg-amber-50', invalid:'text-red-700 bg-red-50' };
+      const icons  = { ok:'✅', already:'⚠️', invalid:'❌' };
+      list.innerHTML = _scans.slice(0, 10).map(s => `
+        <div class="flex items-center gap-3 p-3 rounded-xl ${colors[s.status] || colors.invalid}">
+          <span>${icons[s.status] || '❓'}</span>
+          <div class="flex-1 min-w-0">
+            <div class="font-semibold text-sm truncate">${escapeHtml(s.name)}</div>
+            <div class="text-xs opacity-70 truncate">${escapeHtml(s.event)}</div>
+          </div>
+          <span class="text-xs opacity-60 shrink-0">${timeAgo(s.time.toISOString())}</span>
+        </div>`).join('');
+    }
+
+    async function manualCheckin() {
+      const val = document.getElementById('manual-input').value.trim();
+      if (!val) { toast('Please enter an RSVP UUID', 'warning'); return; }
+      await processCode(val);
+      document.getElementById('manual-input').value = '';
+    }
+
+    async function startScanner() {
+      if (_scanning) return;
+      document.getElementById('start-btn').classList.add('hidden');
+      document.getElementById('stop-btn').classList.remove('hidden');
+
+      _scanner = new Html5Qrcode('qr-reader');
+      try {
+        await _scanner.start(
+          { facingMode: 'environment' },
+          { fps: 10, qrbox: { width: 250, height: 250 } },
+          async (decodedText) => { await processCode(decodedText); },
+          () => {}
+        );
+        _scanning = true;
+      } catch (err) {
+        document.getElementById('camera-denied').classList.remove('hidden');
+        document.getElementById('start-btn').classList.remove('hidden');
+        document.getElementById('stop-btn').classList.add('hidden');
+        toast('Camera error: ' + err, 'error');
+      }
+    }
+
+    async function stopScanner() {
+      if (!_scanner || !_scanning) return;
+      await _scanner.stop();
+      _scanner.clear();
+      _scanning = false;
+      document.getElementById('start-btn').classList.remove('hidden');
+      document.getElementById('stop-btn').classList.add('hidden');
+    }
+
+    init();
+  </script>
+</body>
+</html>

@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Resource Hub – CampusOS</title>
+  <meta name="description" content="Find and share notes, question papers, and notices for City University courses.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { theme: { extend: {
+      colors: {
+        brand: { 50:'#eef4ff', 500:'#2563eb', 600:'#1d4ed8', 700:'#1e40af' },
+        accent: '#f59e0b', ink: '#0f172a', muted: '#64748b', surface: '#f8fafc'
+      },
+      fontFamily: { sans: ['Inter','system-ui','sans-serif'] },
+      animation: { 'scale-in': 'scaleIn 0.2s ease', 'slide-up': 'slideUp 0.3s ease' },
+      keyframes: {
+        scaleIn: { '0%':{ opacity:0, transform:'scale(0.95)' }, '100%':{ opacity:1, transform:'scale(1)' } },
+        slideUp: { '0%':{ opacity:0, transform:'translateY(10px)' }, '100%':{ opacity:1, transform:'translateY(0)' } },
+      }
+    }}}
+  </script>
+  <style>body { font-family: 'Inter', sans-serif; }</style>
+</head>
+<body class="bg-surface text-ink min-h-screen">
+  <div id="navbar"></div>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+      <div>
+        <h1 class="text-3xl font-extrabold text-ink">Resource Hub</h1>
+        <p class="text-muted mt-1">Notes, question papers &amp; notices — organised by course</p>
+      </div>
+      <div class="flex gap-3">
+        <!-- Mobile filters toggle -->
+        <button id="filters-toggle" class="sm:hidden border border-slate-200 bg-white text-ink font-semibold px-4 py-2.5 rounded-xl hover:bg-slate-50 transition flex items-center gap-2">
+          🔽 Filters
+        </button>
+        <button id="upload-btn" class="bg-brand-600 text-white font-bold px-5 py-2.5 rounded-xl hover:bg-brand-700 transition flex items-center gap-2">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4"/></svg>
+          Upload
+        </button>
+      </div>
+    </div>
+
+    <div class="flex flex-col lg:flex-row gap-6">
+      <!-- Filters sidebar -->
+      <aside id="filters-panel" class="hidden sm:block w-full lg:w-72 shrink-0">
+        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 sticky top-20">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="font-bold text-ink">Filters</h2>
+            <button id="clear-filters" class="text-xs text-brand-600 hover:underline font-medium">Clear all</button>
+          </div>
+
+          <div class="space-y-4">
+            <!-- Search -->
+            <div>
+              <label class="block text-xs font-semibold uppercase text-muted mb-1.5 tracking-wide">Search</label>
+              <div class="relative">
+                <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 105 11a6 6 0 0012 0z"/></svg>
+                <input id="search-input" type="search" placeholder="Title or tag…" class="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
+              </div>
+            </div>
+
+            <!-- Department -->
+            <div>
+              <label class="block text-xs font-semibold uppercase text-muted mb-1.5 tracking-wide">Department</label>
+              <select id="filter-dept" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm bg-white">
+                <option value="">All Departments</option>
+              </select>
+            </div>
+
+            <!-- Semester -->
+            <div>
+              <label class="block text-xs font-semibold uppercase text-muted mb-1.5 tracking-wide">Semester</label>
+              <select id="filter-semester" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm bg-white" disabled>
+                <option value="">All Semesters</option>
+              </select>
+            </div>
+
+            <!-- Course -->
+            <div>
+              <label class="block text-xs font-semibold uppercase text-muted mb-1.5 tracking-wide">Course</label>
+              <select id="filter-course" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm bg-white" disabled>
+                <option value="">All Courses</option>
+              </select>
+            </div>
+
+            <!-- Kind -->
+            <div>
+              <label class="block text-xs font-semibold uppercase text-muted mb-1.5 tracking-wide">Type</label>
+              <div class="flex flex-col gap-1.5">
+                <label class="flex items-center gap-2 cursor-pointer text-sm">
+                  <input type="radio" name="kind" value="" class="accent-brand-600" checked> All types
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer text-sm">
+                  <input type="radio" name="kind" value="note" class="accent-brand-600"> 📝 Notes
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer text-sm">
+                  <input type="radio" name="kind" value="question" class="accent-brand-600"> 📋 Question Papers
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer text-sm">
+                  <input type="radio" name="kind" value="notice" class="accent-brand-600"> 📢 Notices
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Main content -->
+      <div class="flex-1 min-w-0">
+        <!-- Breadcrumb -->
+        <div id="breadcrumb" class="hidden text-sm text-muted mb-4 flex items-center gap-1 flex-wrap"></div>
+
+        <!-- Resources list -->
+        <div id="resources-list" class="space-y-3">
+          <!-- Skeleton -->
+          ${Array(4).fill(0).map(()=>`
+            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 animate-pulse flex gap-4">
+              <div class="w-12 h-12 bg-slate-200 rounded-xl shrink-0"></div>
+              <div class="flex-1 space-y-2">
+                <div class="h-4 bg-slate-200 rounded w-2/3"></div>
+                <div class="h-3 bg-slate-200 rounded w-1/2"></div>
+                <div class="h-3 bg-slate-200 rounded w-1/3"></div>
+              </div>
+            </div>`).join('')}
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div id="toast-root" class="fixed bottom-4 right-4 z-[200] max-w-sm w-full"></div>
+  <div id="modal-overlay" class="fixed inset-0 z-[100] items-center justify-center p-4 bg-ink/50 backdrop-blur-sm" style="display:none"></div>
+
+  <script type="module">
+    import { renderNavbar, requireAuth, toast, escapeHtml, timeAgo, debounce, openModal, closeModal } from './js/app.js';
+    import { listDepartments, listCourses, listResources, uploadResource, deleteResource, getDownloadUrl, getProfile } from './js/api.js';
+
+    let _profile = null;
+    let _depts   = [];
+    let _filters = { search:'', departmentId:'', semester:'', courseId:'', kind:'' };
+    let _deptName = '', _semName = '', _courseName = '';
+
+    async function init() {
+      renderNavbar();
+      try { await requireAuth(); } catch { return; }
+
+      _profile = await getProfile();
+      _depts   = await listDepartments();
+
+      // Populate department select
+      const deptSel = document.getElementById('filter-dept');
+      deptSel.innerHTML = '<option value="">All Departments</option>' +
+        _depts.map(d => `<option value="${d.id}">${escapeHtml(d.name)}</option>`).join('');
+
+      // Cascading: dept → semesters
+      deptSel.addEventListener('change', async () => {
+        _filters.departmentId = deptSel.value;
+        _filters.semester     = '';
+        _filters.courseId     = '';
+        _deptName  = _depts.find(d => d.id === deptSel.value)?.name || '';
+        _semName   = ''; _courseName = '';
+        updateBreadcrumb();
+
+        const semSel    = document.getElementById('filter-semester');
+        const courseSel = document.getElementById('filter-course');
+        semSel.innerHTML  = '<option value="">All Semesters</option>';
+        courseSel.innerHTML = '<option value="">All Courses</option>';
+
+        if (deptSel.value) {
+          const courses = await listCourses({ departmentId: deptSel.value });
+          const semesters = [...new Set(courses.map(c => c.semester))].sort((a,b) => a-b);
+          semSel.innerHTML = '<option value="">All Semesters</option>' +
+            semesters.map(s => `<option value="${s}">Semester ${s}</option>`).join('');
+          semSel.disabled = false;
+          courseSel.disabled = true;
+        } else {
+          semSel.disabled = true; courseSel.disabled = true;
+        }
+        loadResources();
+      });
+
+      // Cascading: semester → courses
+      document.getElementById('filter-semester').addEventListener('change', async () => {
+        const sem = document.getElementById('filter-semester').value;
+        _filters.semester = sem;
+        _filters.courseId = '';
+        _semName = sem ? `Semester ${sem}` : '';
+        _courseName = '';
+        updateBreadcrumb();
+
+        const courseSel = document.getElementById('filter-course');
+        courseSel.innerHTML = '<option value="">All Courses</option>';
+
+        if (sem && _filters.departmentId) {
+          const courses = await listCourses({ departmentId: _filters.departmentId, semester: sem });
+          courseSel.innerHTML = '<option value="">All Courses</option>' +
+            courses.map(c => `<option value="${c.id}">${escapeHtml(c.code)} – ${escapeHtml(c.title)}</option>`).join('');
+          courseSel.disabled = false;
+        } else {
+          courseSel.disabled = true;
+        }
+        loadResources();
+      });
+
+      document.getElementById('filter-course').addEventListener('change', () => {
+        const sel = document.getElementById('filter-course');
+        _filters.courseId = sel.value;
+        const opt = sel.selectedOptions[0];
+        _courseName = sel.value ? opt.text : '';
+        updateBreadcrumb();
+        loadResources();
+      });
+
+      document.querySelectorAll('input[name="kind"]').forEach(radio => {
+        radio.addEventListener('change', () => { _filters.kind = radio.value; loadResources(); });
+      });
+
+      document.getElementById('search-input').addEventListener('input', debounce(e => {
+        _filters.search = e.target.value;
+        loadResources();
+      }, 300));
+
+      document.getElementById('clear-filters').addEventListener('click', clearFilters);
+      document.getElementById('upload-btn').addEventListener('click', openUploadModal);
+      document.getElementById('filters-toggle').addEventListener('click', () => {
+        document.getElementById('filters-panel').classList.toggle('hidden');
+      });
+
+      loadResources();
+    }
+
+    function updateBreadcrumb() {
+      const bc = document.getElementById('breadcrumb');
+      const parts = [_deptName, _semName, _courseName].filter(Boolean);
+      if (parts.length) {
+        bc.classList.remove('hidden');
+        bc.innerHTML = parts.map((p,i) => `
+          <span class="${i > 0 ? 'text-slate-400' : ''}">${i > 0 ? '› ' : ''}${escapeHtml(p)}</span>`).join('');
+      } else {
+        bc.classList.add('hidden');
+      }
+    }
+
+    function clearFilters() {
+      _filters = { search:'', departmentId:'', semester:'', courseId:'', kind:'' };
+      document.getElementById('filter-dept').value     = '';
+      document.getElementById('filter-semester').value = '';
+      document.getElementById('filter-course').value   = '';
+      document.getElementById('search-input').value    = '';
+      document.querySelector('input[name="kind"][value=""]').checked = true;
+      document.getElementById('filter-semester').disabled = true;
+      document.getElementById('filter-course').disabled   = true;
+      _deptName = ''; _semName = ''; _courseName = '';
+      updateBreadcrumb();
+      loadResources();
+    }
+
+    async function loadResources() {
+      const list = document.getElementById('resources-list');
+      list.innerHTML = Array(4).fill(0).map(()=>`
+        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 animate-pulse flex gap-4">
+          <div class="w-12 h-12 bg-slate-200 rounded-xl shrink-0"></div>
+          <div class="flex-1 space-y-2">
+            <div class="h-4 bg-slate-200 rounded w-2/3"></div>
+            <div class="h-3 bg-slate-200 rounded w-1/2"></div>
+          </div>
+        </div>`).join('');
+
+      try {
+        const resources = await listResources(_filters);
+        renderResources(resources);
+      } catch (err) {
+        list.innerHTML = `<div class="text-center py-12 text-muted">⚠️ ${escapeHtml(err.message)}</div>`;
+        toast('Error: ' + err.message, 'error');
+      }
+    }
+
+    function renderResources(resources) {
+      const list = document.getElementById('resources-list');
+      if (!resources.length) {
+        list.innerHTML = `
+          <div class="text-center py-20">
+            <div class="text-5xl mb-4">📭</div>
+            <h3 class="text-xl font-semibold text-ink mb-1">No resources found</h3>
+            <p class="text-muted mb-4">Try different filters, or be the first to upload!</p>
+            <button onclick="document.getElementById('upload-btn').click()" class="bg-brand-600 text-white font-semibold px-5 py-2.5 rounded-xl hover:bg-brand-700 transition">Upload Resource</button>
+          </div>`;
+        return;
+      }
+
+      const icons = { note:'📝', question:'📋', notice:'📢' };
+      const kindColors = { note:'bg-blue-50 text-blue-700', question:'bg-purple-50 text-purple-700', notice:'bg-amber-50 text-amber-700' };
+
+      list.innerHTML = resources.map(r => {
+        const canDelete = _profile && (r.uploaded_by === _profile.id || _profile.role === 'admin');
+        const tags = r.tags || [];
+        return `
+          <div id="res-${r.id}" class="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 hover:shadow-md transition-shadow group">
+            <div class="flex items-start gap-4">
+              <!-- Icon -->
+              <div class="w-12 h-12 ${kindColors[r.kind] || 'bg-slate-50 text-slate-600'} rounded-xl flex items-center justify-center text-2xl shrink-0">
+                ${icons[r.kind] || '📄'}
+              </div>
+
+              <!-- Content -->
+              <div class="flex-1 min-w-0">
+                <div class="flex items-start justify-between gap-2">
+                  <h3 class="font-bold text-ink text-sm leading-snug">${escapeHtml(r.title)}</h3>
+                  <span class="text-xs font-medium px-2 py-0.5 rounded-full ${kindColors[r.kind] || ''} shrink-0 capitalize">${r.kind}</span>
+                </div>
+                <p class="text-xs text-muted mt-0.5">
+                  <span class="font-mono">${escapeHtml(r.course_code)}</span>
+                  ${r.course_title ? ` · ${escapeHtml(r.course_title)}` : ''}
+                </p>
+                <p class="text-xs text-muted">by ${escapeHtml(r.uploader_name)} · ${timeAgo(r.created_at)}</p>
+
+                <!-- Tags -->
+                ${tags.length ? `
+                  <div class="flex flex-wrap gap-1 mt-2">
+                    ${tags.map(t => `
+                      <button onclick="addTagSearch('${escapeHtml(t).replace(/'/g,"\\'")}', this)"
+                        class="text-xs bg-slate-100 hover:bg-brand-100 hover:text-brand-700 text-muted px-2 py-0.5 rounded-full transition font-medium">
+                        #${escapeHtml(t)}
+                      </button>`).join('')}
+                  </div>` : ''}
+              </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex items-center gap-2 mt-3 pt-3 border-t border-slate-100">
+              <button onclick="downloadResource('${r.id}', '${escapeHtml(r.file_path).replace(/'/g,"\\'")}', '${escapeHtml(r.file_name || 'file').replace(/'/g,"\\'")}', this)"
+                class="flex items-center gap-1.5 text-xs font-semibold text-brand-600 hover:text-brand-700 hover:bg-brand-50 px-3 py-1.5 rounded-lg transition">
+                ⬇️ Download
+              </button>
+              ${canDelete ? `
+                <button onclick="confirmDelete('${r.id}', '${escapeHtml(r.title).replace(/'/g,"\\'")}', this)"
+                  class="flex items-center gap-1.5 text-xs font-semibold text-red-400 hover:text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-lg transition ml-auto">
+                  🗑️ Delete
+                </button>` : ''}
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    window.addTagSearch = (tag) => {
+      const inp = document.getElementById('search-input');
+      const cur = inp.value.trim();
+      inp.value = cur ? (cur.includes(tag) ? cur : cur + ' ' + tag) : tag;
+      _filters.search = inp.value;
+      loadResources();
+    };
+
+    window.downloadResource = async (id, filePath, fileName, btn) => {
+      const orig = btn.innerHTML;
+      btn.innerHTML = '⏳ Preparing…'; btn.disabled = true;
+      try {
+        const url = await getDownloadUrl(filePath);
+        const a = document.createElement('a');
+        a.href = url; a.download = fileName; a.target = '_blank';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      } catch (err) {
+        toast('Download failed: ' + err.message, 'error');
+      } finally {
+        btn.innerHTML = orig; btn.disabled = false;
+      }
+    };
+
+    window.confirmDelete = (id, title) => {
+      openModal(`
+        <div class="p-6 text-center">
+          <div class="text-4xl mb-3">🗑️</div>
+          <h2 class="text-xl font-bold text-ink mb-2">Delete resource?</h2>
+          <p class="text-muted mb-6">Delete <strong>${escapeHtml(title)}</strong>? This cannot be undone.</p>
+          <div class="flex gap-3">
+            <button id="del-cancel" class="flex-1 border border-slate-200 text-ink font-semibold py-2.5 rounded-xl hover:bg-slate-50 transition">Cancel</button>
+            <button id="del-confirm" class="flex-1 bg-red-600 text-white font-bold py-2.5 rounded-xl hover:bg-red-700 transition">Delete</button>
+          </div>
+        </div>`);
+      document.getElementById('del-cancel').addEventListener('click', closeModal);
+      document.getElementById('del-confirm').addEventListener('click', async () => {
+        try {
+          await deleteResource(id);
+          closeModal();
+          toast('Deleted.', 'info');
+          document.getElementById(`res-${id}`)?.remove();
+        } catch (err) {
+          toast(err.message, 'error');
+        }
+      });
+    };
+
+    function openUploadModal() {
+      openModal(`
+        <div class="p-6">
+          <h2 class="text-xl font-bold text-ink mb-5">Upload Resource</h2>
+          <form id="upload-form" class="space-y-4" novalidate>
+            <div>
+              <label class="block text-xs font-semibold uppercase text-muted mb-1 tracking-wide">Title *</label>
+              <input id="up-title" type="text" placeholder="e.g. Algorithms Midterm 2024" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm" required>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-semibold uppercase text-muted mb-1 tracking-wide">Department *</label>
+                <select id="up-dept" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm bg-white" required>
+                  <option value="">Pick dept…</option>
+                  ${_depts.map(d => `<option value="${d.id}">${escapeHtml(d.name)}</option>`).join('')}
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold uppercase text-muted mb-1 tracking-wide">Semester *</label>
+                <select id="up-semester" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm bg-white" disabled required>
+                  <option value="">Pick semester…</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold uppercase text-muted mb-1 tracking-wide">Course *</label>
+              <select id="up-course" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm bg-white" disabled required>
+                <option value="">Pick course…</option>
+              </select>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-semibold uppercase text-muted mb-1 tracking-wide">Type *</label>
+                <select id="up-kind" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm bg-white" required>
+                  <option value="note">📝 Note</option>
+                  <option value="question">📋 Question Paper</option>
+                  <option value="notice">📢 Notice</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold uppercase text-muted mb-1 tracking-wide">Tags</label>
+                <input id="up-tags" type="text" placeholder="midterm, 2024, sql" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold uppercase text-muted mb-1 tracking-wide">File * <span class="normal-case font-normal text-muted">(PDF, images, DOC/X, PPT/X — max 20MB)</span></label>
+              <div id="drop-zone" class="border-2 border-dashed border-slate-200 rounded-xl p-6 text-center cursor-pointer hover:border-brand-400 hover:bg-brand-50 transition">
+                <div class="text-3xl mb-1">📁</div>
+                <p class="text-sm text-muted">Drop file here or <span class="text-brand-600 font-semibold">click to browse</span></p>
+                <input id="up-file" type="file" class="hidden" accept=".pdf,.png,.jpg,.jpeg,.gif,.doc,.docx,.ppt,.pptx">
+              </div>
+              <p id="file-name-display" class="text-xs text-muted mt-1 hidden"></p>
+            </div>
+
+            <!-- Progress -->
+            <div id="upload-progress" class="hidden">
+              <div class="flex justify-between text-xs text-muted mb-1">
+                <span>Uploading…</span><span id="progress-pct">0%</span>
+              </div>
+              <div class="bg-slate-200 rounded-full h-2">
+                <div id="progress-bar" class="bg-brand-600 h-2 rounded-full transition-all duration-300" style="width:0%"></div>
+              </div>
+            </div>
+
+            <p id="up-error" class="text-red-500 text-xs bg-red-50 rounded-lg p-2 hidden"></p>
+
+            <div class="flex gap-3 pt-2">
+              <button type="button" id="up-cancel" class="flex-1 border border-slate-200 text-ink font-semibold py-2.5 rounded-xl hover:bg-slate-50 transition text-sm">Cancel</button>
+              <button id="up-submit" type="submit" class="flex-1 bg-brand-600 text-white font-bold py-2.5 rounded-xl hover:bg-brand-700 transition text-sm">Upload</button>
+            </div>
+          </form>
+        </div>`);
+
+      document.getElementById('up-cancel').addEventListener('click', closeModal);
+
+      // Drop zone
+      const dropZone = document.getElementById('drop-zone');
+      const fileInput = document.getElementById('up-file');
+      dropZone.addEventListener('click', () => fileInput.click());
+      dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('border-brand-400','bg-brand-50'); });
+      dropZone.addEventListener('dragleave', () => dropZone.classList.remove('border-brand-400','bg-brand-50'));
+      dropZone.addEventListener('drop', e => { e.preventDefault(); if (e.dataTransfer.files[0]) { fileInput.files = e.dataTransfer.files; updateFileDisplay(e.dataTransfer.files[0]); } });
+      fileInput.addEventListener('change', () => { if (fileInput.files[0]) updateFileDisplay(fileInput.files[0]); });
+
+      function updateFileDisplay(file) {
+        const el = document.getElementById('file-name-display');
+        el.textContent = `Selected: ${file.name} (${(file.size/1024/1024).toFixed(2)} MB)`;
+        el.classList.remove('hidden');
+      }
+
+      // Cascading selects inside modal
+      document.getElementById('up-dept').addEventListener('change', async () => {
+        const deptId = document.getElementById('up-dept').value;
+        const semSel = document.getElementById('up-semester');
+        const courseSel = document.getElementById('up-course');
+        semSel.innerHTML = '<option value="">Pick semester…</option>';
+        courseSel.innerHTML = '<option value="">Pick course…</option>';
+        courseSel.disabled = true;
+        if (deptId) {
+          const courses = await listCourses({ departmentId: deptId });
+          const sems = [...new Set(courses.map(c => c.semester))].sort((a,b)=>a-b);
+          semSel.innerHTML = '<option value="">Pick semester…</option>' +
+            sems.map(s => `<option value="${s}">Semester ${s}</option>`).join('');
+          semSel.disabled = false;
+        } else {
+          semSel.disabled = true;
+        }
+      });
+
+      document.getElementById('up-semester').addEventListener('change', async () => {
+        const deptId = document.getElementById('up-dept').value;
+        const sem    = document.getElementById('up-semester').value;
+        const courseSel = document.getElementById('up-course');
+        courseSel.innerHTML = '<option value="">Pick course…</option>';
+        if (deptId && sem) {
+          const courses = await listCourses({ departmentId: deptId, semester: sem });
+          courseSel.innerHTML = '<option value="">Pick course…</option>' +
+            courses.map(c => `<option value="${c.id}">${escapeHtml(c.code)} – ${escapeHtml(c.title)}</option>`).join('');
+          courseSel.disabled = false;
+        } else {
+          courseSel.disabled = true;
+        }
+      });
+
+      // Submit
+      document.getElementById('upload-form').addEventListener('submit', async e => {
+        e.preventDefault();
+        const title    = document.getElementById('up-title').value.trim();
+        const courseId = document.getElementById('up-course').value;
+        const kind     = document.getElementById('up-kind').value;
+        const tagsRaw  = document.getElementById('up-tags').value;
+        const tags     = tagsRaw.split(/[\s,]+/).map(t=>t.trim()).filter(Boolean);
+        const file     = document.getElementById('up-file').files[0];
+        const errEl    = document.getElementById('up-error');
+        errEl.classList.add('hidden');
+
+        if (!title || !courseId || !file) {
+          errEl.textContent = 'Please fill in title, course, and select a file.';
+          errEl.classList.remove('hidden');
+          return;
+        }
+        const allowed = ['pdf','png','jpg','jpeg','gif','doc','docx','ppt','pptx'];
+        const ext = file.name.split('.').pop().toLowerCase();
+        if (!allowed.includes(ext)) {
+          errEl.textContent = 'File type not allowed. Use PDF, image, DOC/X, or PPT/X.';
+          errEl.classList.remove('hidden');
+          return;
+        }
+        if (file.size > 20 * 1024 * 1024) {
+          errEl.textContent = 'File exceeds 20 MB limit.';
+          errEl.classList.remove('hidden');
+          return;
+        }
+
+        const btn = document.getElementById('up-submit');
+        btn.disabled = true; btn.textContent = 'Uploading…';
+        document.getElementById('upload-progress').classList.remove('hidden');
+
+        try {
+          await uploadResource({
+            file, title, courseId, kind, tags,
+            onProgress: pct => {
+              document.getElementById('progress-bar').style.width = pct + '%';
+              document.getElementById('progress-pct').textContent = pct + '%';
+            }
+          });
+          closeModal();
+          toast('Resource uploaded! 🎉', 'success');
+          loadResources();
+        } catch (err) {
+          errEl.textContent = err.message;
+          errEl.classList.remove('hidden');
+          btn.disabled = false; btn.textContent = 'Upload';
+          document.getElementById('upload-progress').classList.add('hidden');
+        }
+      });
+    }
+
+    init();
+  </script>
+</body>
+</html>
