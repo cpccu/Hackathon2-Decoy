@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CampusOS - Login / Register</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Supabase JS CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-slate-900 text-white flex items-center justify-center min-h-screen">
+
+  <div class="bg-slate-800 p-8 rounded-xl shadow-2xl w-full max-w-md border border-slate-700">
+    <div class="text-center mb-6">
+      <h1 class="text-3xl font-extrabold text-blue-500">CampusOS</h1>
+      <p class="text-slate-400 text-sm mt-1">City University Digital Hub</p>
+    </div>
+
+    <div class="space-y-4">
+      <div>
+        <label class="block text-xs font-semibold uppercase text-slate-400 mb-1">Student Email</label>
+        <input type="email" id="email" placeholder="student@cityuniversity.edu.bd" class="w-full p-3 rounded bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-blue-500">
+      </div>
+      <div>
+        <label class="block text-xs font-semibold uppercase text-slate-400 mb-1">Password</label>
+        <input type="password" id="password" placeholder="••••••••" class="w-full p-3 rounded bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-blue-500">
+      </div>
+
+      <button onclick="handleLogin()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded transition duration-200">
+        Log In
+      </button>
+      <button onclick="handleSignUp()" class="w-full bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold py-3 rounded transition duration-200">
+        Sign Up
+      </button>
+    </div>
+
+    <p id="auth-status" class="text-center text-sm text-yellow-400 mt-4"></p>
+  </div>
+
+  <script src="supabase.js"></script>
+  <script>
+    async function handleSignUp() {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const status = document.getElementById('auth-status');
+
+      status.innerText = "Creating account...";
+      const { data, error } = await _supabase.auth.signUp({ email, password });
+      
+      if (error) {
+        status.innerText = "Error: " + error.message;
+      } else {
+        status.innerText = "Account created! You can now log in.";
+      }
+    }
+
+    async function handleLogin() {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const status = document.getElementById('auth-status');
+
+      status.innerText = "Logging in...";
+      const { data, error } = await _supabase.auth.signInWithPassword({ email, password });
+
+      if (error) {
+        status.innerText = "Error: " + error.message;
+      } else {
+        status.innerText = "Login successful! Redirecting...";
+        setTimeout(() => { window.location.href = "index.html"; }, 1000);
+      }
+    }
+  </script>
+</body>
+</html>
