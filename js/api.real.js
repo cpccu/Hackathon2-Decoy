@@ -10,10 +10,10 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
-export async function signUp({ email, password, full_name, student_id, department }) {
+export async function signUp({ email, password, full_name, student_id, department, batch }) {
   const { data, error } = await supabase.auth.signUp({
     email, password,
-    options: { data: { full_name, student_id, department } },
+    options: { data: { full_name, student_id, department, batch } },
   });
   if (error) throw new Error(error.message);
   const user = data.user;

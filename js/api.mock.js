@@ -138,11 +138,11 @@ const MOCK_USERS = {
 };
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
-export async function signUp({ email, password, full_name, student_id, department }) {
+export async function signUp({ email, password, full_name, student_id, department, batch }) {
   await delay();
   if (MOCK_USERS[email]) throw new Error('Email already registered');
   const id = uuid();
-  const profile = { id, full_name: full_name || email.split('@')[0], student_id, department, role: 'student', created_at: now() };
+  const profile = { id, full_name: full_name || email.split('@')[0], student_id, department, batch, role: 'student', created_at: now() };
   MOCK_USERS[email] = { password, id };
   _profiles.push(profile);
   _saveSession(profile);
