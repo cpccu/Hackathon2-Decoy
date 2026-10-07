@@ -13,14 +13,14 @@ const daysAhead = n => new Date(Date.now() + n * 864e5).toISOString();
 
 // ─── Seed Data ───────────────────────────────────────────────────────────────
 const CLUBS = [
-  { id: 'club-1', name: 'CU Computer Club',      description: 'Where code meets creativity.' },
-  { id: 'club-2', name: 'CU Cultural Club',       description: 'Celebrating arts and heritage.' },
-  { id: 'club-3', name: 'CU Debating Society',    description: 'Sharpen your arguments.' },
-  { id: 'club-4', name: 'CU Robotics Club',       description: 'Build the future with metal and code.' },
-  { id: 'club-5', name: 'CU Photography Club',    description: 'Capture moments that matter.' },
-  { id: 'club-6', name: 'CU Sports Club',         description: 'Health, hustle and hustle harder.' },
-  { id: 'club-7', name: 'CU Business Club',       description: 'Entrepreneur mindset, campus scale.' },
-  { id: 'club-8', name: 'CU Rotaract Club',       description: 'Service above self.' },
+  { id: 'club-1', name: 'City University Computer Club', description: 'Where code meets creativity.' },
+  { id: 'club-2', name: 'Cultural Club',                 description: 'Celebrating arts and heritage.' },
+  { id: 'club-3', name: 'Textile Club',                  description: 'Weaving the fabric of the future.' },
+  { id: 'club-4', name: 'Sports Club',                   description: 'Health, hustle and hustle harder.' },
+  { id: 'club-5', name: 'CU Debating Society',           description: 'Sharpen your arguments.' },
+  { id: 'club-6', name: 'CU Robotics Club',              description: 'Build the future with metal and code.' },
+  { id: 'club-7', name: 'CU Photography Club',           description: 'Capture moments that matter.' },
+  { id: 'club-8', name: 'CU Business Club',              description: 'Entrepreneur mindset, campus scale.' },
 ];
 
 const DEPARTMENTS = [
