@@ -62,13 +62,16 @@
         </div>
       </div>
       <div id="qr-reader" class="rounded-2xl overflow-hidden bg-slate-100 min-h-[200px]"></div>
+      <p id="scanner-status" class="text-muted text-sm mt-3 text-center" aria-live="polite">
+        Select an event, then press Start. Scanning checks the pass automatically.
+      </p>
       <p id="camera-denied" class="hidden text-red-500 text-sm mt-2 text-center">
         📵 Camera permission denied. Use manual entry below.
       </p>
     </div>
 
     <!-- Result panel -->
-    <div id="result-panel" class="hidden rounded-2xl p-5 mb-5">
+    <div id="result-panel" class="hidden rounded-2xl p-5 mb-5" role="status" aria-live="polite" aria-atomic="true">
       <div id="result-icon" class="text-4xl mb-2 text-center"></div>
       <div id="result-text" class="text-lg font-bold text-center mb-1"></div>
       <div id="result-sub"  class="text-sm text-center text-muted"></div>
@@ -104,6 +107,7 @@
     let _lastScan  = '';
     let _lastTime  = 0;
     let _debounceMs = 3000;
+    let _processingScan = false;
     let _scans     = [];
     let _selectedEventId = '';
 
@@ -147,14 +151,36 @@
     }
 
     async function processCode(rsvpId) {
-      if (!rsvpId || rsvpId.trim() === '') return;
+      const code = rsvpId?.trim();
+      if (!code || _processingScan) return;
       const now = Date.now();
-      if (rsvpId === _lastScan && now - _lastTime < _debounceMs) return;
-      _lastScan = rsvpId; _lastTime = now;
+      if (code === _lastScan && now - _lastTime < _debounceMs) return;
+      _lastScan = code; _lastTime = now;
 
-      const result = await checkIn(rsvpId.trim());
-      showResult(result, rsvpId);
-      await refreshCounter();
+      if (!/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(code)) {
+        showResult({ status: 'invalid' }, code);
+        return;
+      }
+
+      _processingScan = true;
+      let result;
+      try {
+        result = await checkIn(code);
+        showResult(result, code);
+      } catch (err) {
+        showScanError(err);
+        return;
+      } finally {
+        _processingScan = false;
+      }
+
+      if (result.status === 'ok' || result.status === 'already') {
+        try {
+          await refreshCounter();
+        } catch (err) {
+          toast(`Pass was processed, but the counter could not refresh: ${err.message}`, 'warning');
+        }
+      }
     }
 
     function showResult(result, rsvpId) {
@@ -167,7 +193,7 @@
       if (result.status === 'ok') {
         panel.classList.add('bg-emerald-50');
         icon.textContent = '✅';
-        text.textContent = `${result.name} checked in!`;
+        text.textContent = `Scan complete — ${result.name} checked in!`;
         sub.textContent  = `Event: ${result.event}`;
         if (_selectedEventId && result.event_id !== _selectedEventId) {
           sub.textContent += ' ⚠️ (Different event than selected!)';
@@ -189,9 +215,21 @@
         panel.classList.add('bg-red-50');
         icon.textContent = '❌';
         text.textContent = 'Invalid pass';
-        sub.textContent  = `RSVP UUID not found: ${rsvpId.slice(0,12)}…`;
+        sub.textContent  = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(rsvpId)
+          ? 'This RSVP code was not found. No check-in was recorded.'
+          : 'QR detected, but it is not a CampusOS RSVP pass. No check-in was recorded.';
         addScanEntry('invalid', 'Invalid', '');
       }
+    }
+
+    function showScanError(err) {
+      const panel = document.getElementById('result-panel');
+      panel.classList.remove('hidden', 'bg-emerald-50', 'bg-amber-50');
+      panel.classList.add('bg-red-50');
+      document.getElementById('result-icon').textContent = '⚠️';
+      document.getElementById('result-text').textContent = 'Could not verify pass';
+      document.getElementById('result-sub').textContent = `${err.message || 'Connection error'} — no check-in was confirmed. Try again.`;
+      addScanEntry('invalid', 'Could not verify', err.message || 'Connection error');
     }
 
     function addScanEntry(status, name, event) {
@@ -219,8 +257,14 @@
 
     async function startScanner() {
       if (_scanning) return;
+      if (!_selectedEventId) {
+        toast('Select an event before starting the scanner.', 'warning');
+        return;
+      }
+      document.getElementById('camera-denied').classList.add('hidden');
       document.getElementById('start-btn').classList.add('hidden');
       document.getElementById('stop-btn').classList.remove('hidden');
+      document.getElementById('scanner-status').textContent = 'Starting camera…';
 
       _scanner = new Html5Qrcode('qr-reader');
       try {
@@ -231,10 +275,12 @@
           () => {}
         );
         _scanning = true;
+        document.getElementById('scanner-status').textContent = 'Camera active. Hold a CampusOS pass in view; check-in happens automatically.';
       } catch (err) {
         document.getElementById('camera-denied').classList.remove('hidden');
         document.getElementById('start-btn').classList.remove('hidden');
         document.getElementById('stop-btn').classList.add('hidden');
+        document.getElementById('scanner-status').textContent = 'Camera could not start. Use Manual Entry or try camera permission again.';
         toast('Camera error: ' + err, 'error');
       }
     }
@@ -246,6 +292,7 @@
       _scanning = false;
       document.getElementById('start-btn').classList.remove('hidden');
       document.getElementById('stop-btn').classList.add('hidden');
+      document.getElementById('scanner-status').textContent = 'Camera stopped. Start again to scan another pass.';
     }
 
     init();
