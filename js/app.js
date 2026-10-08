@@ -131,7 +131,7 @@ function _escHandler(e) { if (e.key === 'Escape') closeModal(); }
 export async function requireAuth() {
   const session = await getSession();
   if (!session) {
-    window.location.href = `auth.html?next=${encodeURIComponent(location.pathname + location.search)}`;
+    window.location.href = `index.html?next=${encodeURIComponent(location.pathname + location.search)}`;
     throw new Error('Not authenticated');
   }
   return session;
@@ -148,14 +148,14 @@ export async function requireAdmin() {
 }
 
 // ─── Navbar ───────────────────────────────────────────────────────────────────
-export async function renderNavbar() {
+export async function renderNavbar({ showModuleLinks = true } = {}) {
   const target = document.getElementById('navbar');
   if (!target) return;
 
   const session = await getSession();
   const profile = session ? await getProfile() : null;
   const isAdmin = profile?.role === 'admin';
-  const currentPage = location.pathname.split('/').pop() || 'index.html';
+  const currentPage = location.pathname.split('/').pop() || 'home.html';
 
   const navLink = (href, label) => {
     const active = currentPage === href ? 'text-brand-600 font-semibold' : 'text-ink hover:text-brand-600';
@@ -165,19 +165,30 @@ export async function renderNavbar() {
   target.innerHTML = `
     <nav class="bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex items-center justify-between h-16">
+        <div class="relative flex items-center justify-between h-16">
+          ${currentPage !== 'home.html' ? `
+            <button id="mobile-back-btn" type="button" class="md:hidden absolute left-0 top-1/2 -translate-y-1/2 rounded-lg p-2 text-ink hover:bg-slate-100 transition" aria-label="Go back" title="Go back">
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+              </svg>
+            </button>
+          ` : ''}
           <!-- Logo -->
-          <a href="index.html" class="flex items-center gap-2 font-extrabold text-xl text-brand-600 tracking-tight">
-            <span class="text-2xl">🎓</span> CampusOS
+          <a href="home.html" class="${currentPage === 'home.html' ? '' : 'ml-10 md:ml-0'} flex shrink-0 items-center">
+            <img src="CityUniLogo.jpeg" alt="City University" class="h-16 w-40 object-contain">
             ${USE_MOCK ? '<span class="ml-2 text-[10px] bg-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded-full uppercase tracking-wide">Mock data</span>' : ''}
           </a>
 
           <!-- Desktop links -->
-          <div class="hidden md:flex items-center gap-6 text-sm font-medium">
-            ${navLink('events.html',    'Events')}
-            ${navLink('resources.html', 'Resources')}
-            ${isAdmin ? navLink('scan.html', '📷 Scan') : ''}
-          </div>
+          ${showModuleLinks ? `
+            <div class="absolute left-1/2 hidden -translate-x-1/2 items-center gap-6 text-sm font-medium md:flex">
+              ${navLink('home.html',      'Home')}
+              ${navLink('events.html',    'Events')}
+              ${navLink('resources.html', 'Resources')}
+              ${isAdmin ? navLink('admin.html', 'Admin') : ''}
+              ${isAdmin ? navLink('scan.html', '📷 Scan') : ''}
+            </div>
+          ` : ''}
 
           <!-- Auth area -->
           <div class="flex items-center gap-3">
@@ -192,7 +203,7 @@ export async function renderNavbar() {
                 <button id="logout-btn" class="text-sm font-medium text-red-600 hover:text-red-700 transition">Sign out</button>
               </div>
             ` : `
-              <a href="auth.html" class="bg-brand-600 text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-brand-700 transition">Sign in</a>
+              <a href="index.html" class="bg-brand-600 text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-brand-700 transition">Sign in</a>
             `}
 
             <!-- Mobile hamburger -->
@@ -205,17 +216,30 @@ export async function renderNavbar() {
 
       <!-- Mobile menu -->
       <div id="mobile-menu" class="hidden md:hidden border-t border-slate-100 bg-white px-4 pb-4 pt-2 space-y-1">
-        <a href="events.html"    class="block py-2 text-sm font-medium text-ink hover:text-brand-600">Events</a>
-        <a href="resources.html" class="block py-2 text-sm font-medium text-ink hover:text-brand-600">Resources</a>
-        ${isAdmin ? '<a href="scan.html" class="block py-2 text-sm font-medium text-ink hover:text-brand-600">📷 Scan</a>' : ''}
+        ${showModuleLinks ? `
+          <a href="home.html" class="block py-2 text-sm font-medium text-ink hover:text-brand-600">Home</a>
+          <a href="events.html" class="block py-2 text-sm font-medium text-ink hover:text-brand-600">Events</a>
+          <a href="resources.html" class="block py-2 text-sm font-medium text-ink hover:text-brand-600">Resources</a>
+          ${isAdmin ? '<a href="admin.html" class="block py-2 text-sm font-medium text-ink hover:text-brand-600">Admin</a>' : ''}
+          ${isAdmin ? '<a href="scan.html" class="block py-2 text-sm font-medium text-ink hover:text-brand-600">📷 Scan</a>' : ''}
+        ` : ''}
         ${profile
           ? `<button id="logout-btn-mobile" class="block w-full text-left py-2 text-sm font-medium text-red-600 hover:text-red-700">Sign out</button>`
-          : `<a href="auth.html" class="block py-2 text-sm font-medium text-brand-600">Sign in</a>`
+          : `<a href="index.html" class="block py-2 text-sm font-medium text-brand-600">Sign in</a>`
         }
       </div>
     </nav>`;
 
   // Event bindings
+  document.getElementById('mobile-back-btn')?.addEventListener('click', () => {
+    const previousPage = document.referrer ? new URL(document.referrer) : null;
+    if (previousPage?.origin === location.origin && window.history.length > 1) {
+      window.history.back();
+      return;
+    }
+    window.location.href = 'home.html';
+  });
+
   document.getElementById('mobile-menu-btn')?.addEventListener('click', () => {
     document.getElementById('mobile-menu')?.classList.toggle('hidden');
   });

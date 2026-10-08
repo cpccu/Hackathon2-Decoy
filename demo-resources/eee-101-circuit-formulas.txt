@@ -1,0 +1,23 @@
+City University - EEE 101
+DEMO RESOURCE - Circuit Analysis Formula Sheet
+
+Ohm's law:
+V = I R
+
+Power:
+P = V I = I^2 R = V^2 / R
+
+Series resistors:
+R_total = R1 + R2 + ...
+
+Parallel resistors:
+1 / R_total = 1 / R1 + 1 / R2 + ...
+
+Kirchhoff's Current Law:
+The algebraic sum of currents entering a node is zero.
+
+Kirchhoff's Voltage Law:
+The algebraic sum of voltage rises and drops around a closed loop is zero.
+
+Always check units and choose a consistent reference direction for current
+and voltage. These are original demo notes, not official course material.

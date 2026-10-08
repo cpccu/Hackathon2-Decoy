@@ -21,8 +21,8 @@ City University students juggle dozens of Facebook groups and Messenger chats �
 
 | Module | What it does |
 |---|---|
-| **Club & Event Engine** | Browse events, RSVP, get a QR pass, admin scanner check-in |
-| **Resource Hub** | Upload & find notes, question papers, notices by Dept → Sem → Course |
+| **Club & Event Engine** | Browse events, student RSVP and QR passes, club-scoped admin event editing, registration lists, and scanner check-in |
+| **Resource Hub** | Upload & find notes, question papers, notices by Dept → Sem → Course; student uploads are department-approved |
 
 ### Architecture
 
@@ -52,13 +52,13 @@ Supabase (Postgres + Auth + Storage)
 | Backend | Supabase (Postgres, Auth, Storage) |
 | QR generate | qrcode.js CDN |
 | QR scan | html5-qrcode CDN |
-| Hosting | Netlify / Vercel / Cloudflare Pages |
+| Hosting | GitHub Pages |
 
 ---
 
 ## Live Demo
 
-🌐 **URL:** *(deploy and fill in)*  
+🌐 **URL:** https://cpccu.github.io/Hackathon2-Decoy/
 🎬 **Demo video:** *(link here)*
 
 ---
@@ -78,15 +78,12 @@ cp js/config.example.js js/config.js
 # 3. (Backend) Run SQL in Supabase SQL editor in order:
 #    sql/schema.sql  →  sql/policies.sql  →  sql/seed.sql
 
-# 4. Create seed users via the Supabase Auth dashboard or signup page:
-#    admin@campusos.test / Admin@12345
+# 4. Create admin@campusos.test in Supabase Auth, then promote it to faculty/root
+#    admin as described in docs/BACKEND.md; rerun sql/seed.sql to add demo resources.
+# 5. Create student accounts through the signup page:
 #    student1@campusos.test / Student@12345
 #    student2@campusos.test / Student@12345
-
-# 5. Promote admin (run in Supabase SQL editor):
-#    UPDATE public.profiles SET role='admin'
-#    WHERE id = (SELECT id FROM auth.users WHERE email='admin@campusos.test');
-
+#    Root admins issue club-scoped admin passes from admin.html.
 # 6. Serve locally
 npx serve .
 # or use VS Code Live Server extension
@@ -110,9 +107,10 @@ npx serve .
 
 ### 1 — Rafi finds his Algorithms midterm
 *Rafi is CSE semester 5. He needs last year's midterm paper.*
-1. Opens `resources.html`, sets Department → **CSE**, Semester → **5**, Course → **CSE 301 Algorithms**
+1. Opens `resources.html`, sets Department → **CSE**, Semester → **3**, Course → **CSE 301 Algorithms**
 2. Sees the list instantly. Searches `midterm`.
-3. Clicks **Download** — gets a signed, short-lived URL. Done in 10 seconds.
+3. Clicks **Download** — seed examples open directly; uploaded resources use a
+   signed, short-lived URL. Done in 10 seconds.
 
 ### 2 — Nusrat RSVPs to Cultural Night
 *Nusrat sees a Cultural Night event on the feed.*
@@ -121,9 +119,14 @@ npx serve .
 3. Taps **🎟️ RSVP Now** → "You're Registered!" toast.
 4. Clicks **View My Pass** → sees her QR code, downloads the PNG to her phone.
 
+Club admins can edit the event details or schedule and see the registered
+students' names and student IDs on its detail page. Admin accounts cannot RSVP.
+Students see events from every department; department admins see only their
+department's events, while the faculty/root admin sees them all.
+
 ### 3 — Admin checks in at the door
 *Admin is standing at the Auditorium entrance with a laptop.*
-1. Opens `scan.html`, selects "Cultural Night 2025" from the event dropdown.
+1. Opens `scan.html`, selects "Cultural Night" from the event dropdown.
 2. Clicks **▶ Start** — camera activates.
 3. Nusrat shows her QR code → scanner beeps → **✅ Nusrat Jahan checked in!**
 4. Counter updates: **1 / 87 checked in**.
@@ -135,11 +138,12 @@ npx serve .
 
 ```
 Hackathon2-Decoy/
-├── index.html         Landing page
-├── auth.html          Login / Signup
-├── events.html        Event feed + filters + admin create
-├── event.html         Detail + RSVP + QR pass
+├── index.html         Sign in / Sign up (site entry page)
+├── home.html          Events / Resources chooser
+├── events.html        Event feed + filters + admin create/edit
+├── event.html         Detail + student RSVP/pass + admin registrant list
 ├── scan.html          Admin QR scanner
+├── admin.html         Admin invite management
 ├── resources.html     Resource Hub
 ├── js/
 │   ├── config.js      SUPABASE_URL, KEY, USE_MOCK  (public values only)
@@ -155,7 +159,8 @@ Hackathon2-Decoy/
 │   ├── policies.sql
 │   └── seed.sql
 ├── docs/
-│   └── FRONTEND.md
+│   ├── FRONTEND.md
+│   └── BACKEND.md
 └── .gitignore
 ```
 
@@ -166,7 +171,10 @@ Hackathon2-Decoy/
 - **Only the Supabase anon key** is in `config.js`. It is safe to commit because Supabase Row Level Security (RLS) enforces all permissions server-side.
 - The `service_role` key is **never** used in frontend code.
 - All user-generated content is passed through `escapeHtml()` before rendering via `innerHTML` — preventing XSS.
-- Admin-only actions (create event, check-in) are also enforced by RLS and server-side RPC. Hiding admin UI from students is cosmetic only.
+- Admin-only actions are enforced by RLS and server-side RPC. Club admins can manage only assigned clubs; faculty/root admins manage all clubs.
+- Students see all events; department admins see only events for their profile department. Faculty/root access is controlled by the database `is_super_admin` flag (set for `admin@campusos.test` in the backend setup), not an email check in the frontend.
+- Student resource uploads stay pending until an admin for the course department approves them.
+- Admin accounts require one-time passes created from the admin page. The database verifies and consumes each pass and does not retain the plaintext code.
 - Storage bucket is private. Downloads use short-lived signed URLs (60 s).
 
 ---
@@ -174,6 +182,7 @@ Hackathon2-Decoy/
 ## Assumptions & Known Limitations
 
 - Email confirmation is assumed **disabled** in Supabase for the hackathon demo.
+- The first faculty/root admin must be provisioned by the project owner in Supabase; that account can issue club-scoped invites for additional admins.
 - `resources.js` and `events.js` contain JS logic that is inlined directly in the HTML pages for simplicity (no build step). Exported modules exist as scaffolding.
 - The mock implementation stores state in memory and `sessionStorage` — data resets on tab close.
 - The `seed.sql` does not upload real files to Storage (impossible from SQL). Demo resource downloads in mock mode return a text blob placeholder.

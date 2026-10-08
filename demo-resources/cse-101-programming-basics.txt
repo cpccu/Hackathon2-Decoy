@@ -1,0 +1,17 @@
+City University - CSE 101
+DEMO RESOURCE - Programming Basics Quick Notes
+
+1. Variables store values that a program can reuse.
+2. An if/else statement chooses which block to run based on a condition.
+3. A loop repeats work. Use a for loop when the number of repetitions is known.
+4. A function groups a task under a name and can accept inputs and return a result.
+5. Test boundary cases, empty input, and a typical input.
+
+Example pseudocode:
+function total(values):
+    sum = 0
+    for value in values:
+        sum = sum + value
+    return sum
+
+Practice: trace the function with [2, 4, 6], then with an empty list.

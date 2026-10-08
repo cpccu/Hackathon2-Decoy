@@ -26,10 +26,10 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <style>body { font-family: 'Inter', sans-serif; }</style>
 </head>
-<body class="bg-surface text-ink min-h-screen">
+<body class="flex min-h-screen flex-col bg-surface text-ink">
   <div id="navbar"></div>
 
-  <main class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <main class="max-w-4xl mx-auto w-full flex-1 px-4 pb-24 pt-8 sm:px-6 sm:pb-8 lg:px-8">
     <div id="content">
       <!-- Skeleton -->
       <div class="animate-pulse space-y-4">
@@ -44,6 +44,15 @@
     </div>
   </main>
 
+  <footer class="mt-8 bg-[#00005A] py-12 pb-28 text-white sm:pb-12">
+    <div class="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-4 sm:px-6 md:flex-row lg:px-8">
+      <div class="inline-flex h-32 w-56 items-center justify-center overflow-hidden rounded-[50%] border-2 border-[#b42332] bg-white p-3 shadow-lg sm:h-36 sm:w-64 md:h-40 md:w-72">
+        <img src="CityUniLogo.jpeg" alt="City University" class="h-full w-full object-contain">
+      </div>
+      <p class="text-center text-sm text-slate-400">Built for City University (CPCCU Hackathon 2)</p>
+    </div>
+  </footer>
+
   <!-- Sticky RSVP bar (mobile) -->
   <div id="sticky-bar" class="hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-4 z-40 sm:hidden">
     <button id="rsvp-btn-mobile" class="w-full bg-brand-600 text-white font-bold py-3 rounded-xl hover:bg-brand-700 transition">
@@ -56,7 +65,7 @@
 
   <script type="module">
     import { renderNavbar, requireAuth, toast, escapeHtml, formatDateTime, timeAgo, openModal, closeModal } from './js/app.js';
-    import { getEvent, getRsvpCounts, getMyRsvpForEvent, createRsvp, cancelRsvp, getProfile } from './js/api.js';
+    import { getEvent, getRsvpCounts, getMyRsvpForEvent, getEventRegistrants, getManagedClubIds, createRsvp, cancelRsvp, getProfile } from './js/api.js';
 
     window.AppModule = { closeModal };
 
@@ -68,13 +77,33 @@
 
       if (!eventId) { showNotFound(); return; }
 
-      const [event, counts, myRsvp, profile] = await Promise.all([
-        getEvent(eventId), getRsvpCounts(), getMyRsvpForEvent(eventId), getProfile()
+      const [event, counts, profile] = await Promise.all([
+        getEvent(eventId), getRsvpCounts(), getProfile()
       ]);
 
       if (!event) { showNotFound(); return; }
 
-      renderEvent(event, counts, myRsvp, profile);
+      const isAdmin = profile?.role === 'admin';
+      let canManageEvent = false;
+      let myRsvp = null;
+      let registrants = [];
+      let registrantError = '';
+      if (isAdmin) {
+        const managedClubIds = await getManagedClubIds();
+        canManageEvent = profile.is_super_admin || managedClubIds.includes(event.club_id);
+        if (canManageEvent) {
+          try {
+            registrants = await getEventRegistrants(event.id);
+          } catch (error) {
+            registrantError = error.message;
+            toast(`Failed to load registrations: ${error.message}`, 'error');
+          }
+        }
+      } else {
+        myRsvp = await getMyRsvpForEvent(event.id);
+      }
+
+      renderEvent(event, counts, myRsvp, profile, registrants, canManageEvent, registrantError);
     }
 
     function showNotFound() {
@@ -87,7 +116,7 @@
         </div>`;
     }
 
-    function renderEvent(event, counts, myRsvp, profile) {
+    function renderEvent(event, counts, myRsvp, profile, registrants, canManageEvent, registrantError) {
       const d        = new Date(event.starts_at);
       const isPast   = d < new Date();
       const going    = counts[event.id] || 0;
@@ -143,6 +172,14 @@
                     <div class="text-muted text-sm">Hosted by</div>
                   </div>
                 </div>
+                ${event.department_name ? `
+                  <div class="flex items-start gap-3">
+                    <span class="text-xl">🎓</span>
+                    <div>
+                      <div class="font-semibold text-ink">${escapeHtml(event.department_name)}</div>
+                      <div class="text-muted text-sm">Department</div>
+                    </div>
+                  </div>` : ''}
                 <div class="flex items-start gap-3">
                   <span class="text-xl">👥</span>
                   <div>
@@ -161,10 +198,16 @@
               </div>` : ''}
           </div>
 
-          <!-- RSVP sidebar -->
+          <!-- RSVP / admin sidebar -->
           <div class="space-y-4">
             <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 sticky top-20">
-              ${!myRsvp ? `
+              ${profile?.role === 'admin' ? `
+                <div class="text-center">
+                  <div class="text-4xl mb-2">🛠️</div>
+                  <p class="font-bold text-ink mb-1">Admin account</p>
+                  <p class="text-muted text-sm">${canManageEvent ? 'Review the student registrations below.' : 'Admins cannot register for events.'}</p>
+                </div>
+              ` : !myRsvp ? `
                 ${full ? `
                   <div class="text-center">
                     <div class="text-4xl mb-2">😔</div>
@@ -198,6 +241,30 @@
           </div>
         </div>`;
 
+      if (profile?.role === 'admin' && canManageEvent) {
+        document.getElementById('content').insertAdjacentHTML('beforeend', `
+          <section class="mt-6 bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+            <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2 mb-4">
+              <div>
+                <h2 class="font-bold text-ink text-lg">Student registrations</h2>
+                <p class="text-muted text-sm">Student details are taken from their account profiles.</p>
+              </div>
+              <span class="text-sm font-semibold text-brand-700">${registrants.length} registered</span>
+            </div>
+            ${registrantError ? `
+              <p class="rounded-xl bg-red-50 p-4 text-sm text-red-700">Could not load registrations: ${escapeHtml(registrantError)}</p>
+            ` : registrants.length ? `
+              <div class="divide-y divide-slate-100">
+                ${registrants.map(student => `
+                  <div class="flex flex-col gap-1 py-3 sm:flex-row sm:items-center sm:justify-between">
+                    <span class="font-semibold text-ink">${escapeHtml(student.full_name)}</span>
+                    <span class="text-sm text-muted">Student ID: <span class="font-mono text-ink">${escapeHtml(student.student_id || 'Not provided')}</span></span>
+                  </div>`).join('')}
+              </div>
+            ` : '<p class="rounded-xl bg-slate-50 p-4 text-sm text-muted">No students have registered yet.</p>'}
+          </section>`);
+      }
+
       // Wire up RSVP buttons
       const rsvpBtn = document.getElementById('rsvp-btn');
       if (rsvpBtn) {
@@ -215,13 +282,17 @@
       }
 
       // Sticky mobile RSVP
-      if (!myRsvp && !full && !isPast) {
+      if (profile?.role !== 'admin' && !myRsvp && !full && !isPast) {
         document.getElementById('sticky-bar').classList.remove('hidden');
         document.getElementById('rsvp-btn-mobile').addEventListener('click', () => handleRsvp(event, profile));
       }
     }
 
     async function handleRsvp(event, profile) {
+      if (profile?.role !== 'student') {
+        toast('Only students can register for events.', 'error');
+        return;
+      }
       const btn = document.getElementById('rsvp-btn') || document.getElementById('rsvp-btn-mobile');
       if (btn) { btn.disabled = true; btn.textContent = 'Registering…'; }
       try {

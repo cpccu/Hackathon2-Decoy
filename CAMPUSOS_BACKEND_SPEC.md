@@ -2,6 +2,8 @@
 
 > **Your role:** You are the **backend engineer only**. A teammate is building the frontend (HTML, Tailwind, vanilla JS) on a separate branch and PC. **Do not create or edit any `.html` file or anything in `/js`.** Your job is a **Supabase backend** that exactly matches the **Backend Contract in Section 3**, because the frontend is being written against it right now. Read this whole file first, then build. If you must deviate from the contract, document it in `docs/BACKEND.md` and tell the frontend owner.
 
+> **Implementation update (October 2026):** Admin signup now requires one-time invites and club admins are limited to assigned clubs. The executable `sql/*.sql`, `docs/BACKEND.md`, and current app files are authoritative; the original SQL blueprint below is historical scaffolding.
+
 ---
 
 ## 0. Project Summary
@@ -47,40 +49,52 @@ The frontend calls exactly these names. Do not rename anything.
 
 ### 3.1 Auth
 - Supabase Auth, email + password.
-- Signup sends metadata: `options.data = { full_name, student_id, department }`. A trigger must create the `profiles` row from it. **Role is always `student` on signup;** the client can never set it.
+- Signup sends identity metadata and `requested_role`. Students default to `student`; admin signup requires a one-time invite pass. A database trigger consumes and hashes the pass, strips the plaintext pass from Auth metadata, and derives role/scope from the protected invite row. Client-provided role or scope fields never grant privileges.
+- Teacher/admin signup requires a teacher/admin ID; senior-student admin signup requires a student ID. Both need an invite pass.
+- Admin invites carry either selected club assignments or faculty/root access. Club admins may invite within their club scope; only faculty/root admins can issue faculty/root invitations.
+- The login page asks for Student or Admin/Teacher and verifies the selected type against the server profile; a mismatch signs out again.
 - **Email confirmation must be disabled** (Auth → Providers → Email → turn off "Confirm email"). Document this in `docs/BACKEND.md`.
 
 ### 3.2 Tables
 
 | Table | Columns |
 |---|---|
-| `profiles` | `id` (= auth.users.id), `full_name`, `student_id`, `department`, `role` (`'student'` or `'admin'`), `created_at` |
+| `profiles` | `id` (= auth.users.id), `full_name`, `student_id`, `staff_id`, `department`, `role` (`'student'` or `'admin'`), `is_super_admin`, `created_at` |
+| `admin_invites` | Hashed one-time codes and approved club/root scope; no direct client access |
+| `admin_clubs` | Admin-to-club assignments; admins can read only their own assignments |
 | `clubs` | `id`, `name`, `description` |
-| `events` | `id`, `club_id`, `title`, `description`, `type`, `starts_at`, `venue`, `capacity` (nullable), `created_by`, `created_at` |
+| `events` | `id`, `club_id`, `department_id`, `title`, `description`, `type`, `starts_at`, `venue`, `capacity` (nullable), `created_by`, `created_at` |
 | `rsvps` | `id` (uuid, encoded in the QR), `event_id`, `user_id`, `checked_in_at` (nullable), `created_at`; unique `(event_id, user_id)` |
 | `departments` | `id`, `name` |
 | `courses` | `id`, `department_id`, `semester` (1 to 12), `code`, `title` |
-| `resources` | `id`, `course_id`, `title`, `kind` (`'note'`, `'question'`, `'notice'`), `tags` (text[]), `file_path`, `file_name`, `uploaded_by`, `created_at` |
+| `resources` | `id`, `course_id`, `title`, `kind` (`'note'`, `'question'`, `'notice'`), `tags` (text[]), `file_path`, `file_name`, `uploaded_by`, `status`, `reviewed_by`, `reviewed_at`, `created_at` |
 
 `events.type` allowed values: `workshop | seminar | competition | cultural | sports | social | general`.
 
-The frontend will use PostgREST joins, so **foreign keys must exist** as declared: `events.club_id → clubs`, `courses.department_id → departments`, `resources.course_id → courses`, `resources.uploaded_by → profiles`, `rsvps.user_id → profiles`, `rsvps.event_id → events`.
+The frontend will use PostgREST joins, so **foreign keys must exist** as declared: `events.club_id → clubs`, `events.department_id → departments`, `courses.department_id → departments`, `resources.course_id → courses`, `resources.uploaded_by → profiles`, `rsvps.user_id → profiles`, `rsvps.event_id → events`.
 
 ### 3.3 Permissions (enforce with RLS)
 - All reads require a logged-in user (`authenticated`). The anon role reads nothing.
-- **Admin only:** insert/update/delete on `events`, `clubs`, `departments`, `courses`; calling `check_in_rsvp`.
-- Students: insert and delete **their own** `rsvps` (delete blocked once checked in); insert and delete **their own** `resources`; admins may delete any resource.
-- `rsvps`: a user sees their own rows; admins see all (needed for scanner counters).
+- Faculty/root admins manage all clubs and view all events; students view all events; a department admin views only events assigned to their profile department. Admin event changes and RSVP check-in also require assigned-club scope.
+- Only faculty/root admins manage club records, departments, courses, and delete resources uploaded by others. Department admins can review resources from their department. Users may delete their own resources.
+- Students: insert and delete **their own** `rsvps` (delete blocked once checked in); insert resources. RSVP insertion additionally requires the caller's profile role to be `student`; admins cannot register.
+- `rsvps`: a user sees their own rows; admins see rows only for assigned clubs (needed for scoped scanner counters).
+- Club admins can read registrants' profile names and student IDs only for events in clubs they manage. Those IDs come from the account's `profiles.student_id`.
+- Student resource uploads are pending and private until an admin for the course department approves them. Faculty/root admins can review all departments; approved resources are visible to authenticated users.
 - **No direct UPDATE on `rsvps`.** Check-in happens only through the RPC.
-- `profiles.role` cannot be changed by the client.
+- `profiles.role` and `profiles.is_super_admin` cannot be changed by the client.
 
 ### 3.4 RPC functions
-- `rsvp_counts()` returns rows `[{ event_id, going }]` for **all** events (security definer, so students can see counts without seeing other people's RSVP rows).
+- `rsvp_counts()` returns rows `[{ event_id, going }]` for all events visible to the caller (security definer, so students can see counts without seeing other people's RSVP rows).
 - `check_in_rsvp(p_rsvp_id uuid)` returns JSON:
   - `{ "status":"ok", "name", "event", "event_id", "checked_in_at" }`
   - `{ "status":"already", "name", "event", "event_id", "checked_in_at" }`
   - `{ "status":"invalid" }` (no such RSVP)
   - `{ "status":"forbidden" }` (caller is not admin)
+- `create_admin_invite(p_club_ids uuid[], p_super_admin boolean)` creates a random one-time pass only for clubs the issuing admin manages; only faculty/root admins may set `p_super_admin`.
+- `can_manage_club(uuid)` reports whether the authenticated admin can manage that club.
+- `can_manage_department(uuid)` checks faculty/root access or a matching admin profile department.
+- `review_resource(p_resource_id uuid, p_status text)` lets the responsible department admin or faculty/root admin approve/reject an upload.
 
 ### 3.5 Errors the frontend expects
 - RSVP for a full event: insert fails with a message containing exactly **`Event is full`**.
@@ -326,7 +340,7 @@ Must be re-runnable (use `on conflict do nothing`).
 
 ## 7. Seed Accounts (document the exact creation steps in `docs/BACKEND.md`)
 
-Create through the Supabase dashboard (Authentication → Users → Add user, auto-confirm on), then promote the admin with SQL.
+Create the initial admin through Supabase Auth (Authentication → Users → Add user, auto-confirm on), then promote it to faculty/root admin with SQL. Subsequent student and admin accounts use the signup form and verified admin invitations.
 
 | Role | Email | Password |
 |---|---|---|
@@ -335,11 +349,11 @@ Create through the Supabase dashboard (Authentication → Users → Add user, au
 | Student | `student2@campusos.test` | `Student@12345` |
 
 ```sql
-update public.profiles set role='admin'
+update public.profiles set role='admin', is_super_admin=true
 where id = (select id from auth.users where email='admin@campusos.test');
 ```
 
-Because users created in the dashboard have no signup metadata, set `full_name`, `student_id`, and `department` on their profile rows afterward so the pass and uploader names look real.
+Because users created in the dashboard have no signup metadata, set `full_name`, `staff_id`/`student_id`, and `department` on their profile rows afterward so the pass and uploader names look real.
 
 ---
 
@@ -356,16 +370,17 @@ Because users created in the dashboard have no signup metadata, set `full_name`,
 
 Provide copy-paste queries and a short checklist the backend owner runs before handing off. Verify each as the right role (use the Supabase SQL editor with `set local role authenticated; set local request.jwt.claim.sub = '<user uuid>';`, or test through the frontend/Supabase client):
 
-- [ ] A new signup creates a `profiles` row with role `student`.
+- [ ] Student signup creates a `student` profile; an admin signup needs a valid one-time invite and receives only its approved scope.
 - [ ] A student cannot insert an event, set their own role to `admin`, or call `check_in_rsvp` successfully (returns `forbidden`).
 - [ ] A student can RSVP once; a second RSVP fails with `23505`.
 - [ ] RSVP to a full event fails with a message containing `Event is full`.
 - [ ] `rsvp_counts()` returns counts for all events when called by a student.
-- [ ] Admin `check_in_rsvp` returns `ok`, then `already`; a random uuid returns `invalid`.
-- [ ] A student cannot see other students' RSVP rows; admin can.
+- [ ] An admin can manage only assigned club events and RSVPs; a faculty/root admin can manage all clubs.
+- [ ] Admin `check_in_rsvp` returns `ok`, then `already`; a random uuid returns `invalid`; cross-club check-in returns `forbidden`.
+- [ ] A student cannot see other students' RSVP rows; a club admin sees only RSVP rows for assigned clubs.
 - [ ] A student can cancel their own RSVP only before check-in.
 - [ ] A student can upload only into their own `<user_id>/` folder and cannot upload into another user's folder.
-- [ ] A student can delete only their own resources; admin can delete any.
+- [ ] A student can delete only their own resources; faculty/root admin can delete any.
 - [ ] The anon (logged-out) role can read nothing.
 
 ---
@@ -374,7 +389,7 @@ Provide copy-paste queries and a short checklist the backend owner runs before h
 
 - [ ] RLS is enabled on **every** table; storage bucket is private.
 - [ ] No `service_role` key, database password, or JWT secret in the repo or in `docs/`.
-- [ ] Role can never be set by the client (trigger forces `student`; update policy freezes `role`).
+- [ ] Admin role/scope can never be set by the client; the signup trigger verifies/consumes a one-time invite and profile updates freeze role/root status.
 - [ ] Check-in only via the admin-checking RPC; no direct UPDATE policy on `rsvps`.
 - [ ] RPC execute permissions revoked from `anon`.
 

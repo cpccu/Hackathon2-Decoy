@@ -24,10 +24,10 @@
   </script>
   <style>body { font-family: 'Inter', sans-serif; }</style>
 </head>
-<body class="bg-surface text-ink min-h-screen">
+<body class="flex min-h-screen flex-col bg-surface text-ink">
   <div id="navbar"></div>
 
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <main class="max-w-7xl mx-auto w-full flex-1 px-4 sm:px-6 lg:px-8 py-8">
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
       <div>
@@ -118,27 +118,50 @@
 
         <!-- Resources list -->
         <div id="resources-list" class="space-y-3">
-          <!-- Skeleton -->
-          ${Array(4).fill(0).map(()=>`
-            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 animate-pulse flex gap-4">
-              <div class="w-12 h-12 bg-slate-200 rounded-xl shrink-0"></div>
-              <div class="flex-1 space-y-2">
-                <div class="h-4 bg-slate-200 rounded w-2/3"></div>
-                <div class="h-3 bg-slate-200 rounded w-1/2"></div>
-                <div class="h-3 bg-slate-200 rounded w-1/3"></div>
-              </div>
-            </div>`).join('')}
+          <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 animate-pulse flex gap-4" aria-hidden="true">
+            <div class="w-12 h-12 bg-slate-200 rounded-xl shrink-0"></div>
+            <div class="flex-1 space-y-2">
+              <div class="h-4 bg-slate-200 rounded w-2/3"></div>
+              <div class="h-3 bg-slate-200 rounded w-1/2"></div>
+              <div class="h-3 bg-slate-200 rounded w-1/3"></div>
+            </div>
+          </div>
+          <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 animate-pulse flex gap-4" aria-hidden="true">
+            <div class="w-12 h-12 bg-slate-200 rounded-xl shrink-0"></div>
+            <div class="flex-1 space-y-2">
+              <div class="h-4 bg-slate-200 rounded w-2/3"></div>
+              <div class="h-3 bg-slate-200 rounded w-1/2"></div>
+              <div class="h-3 bg-slate-200 rounded w-1/3"></div>
+            </div>
+          </div>
+          <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 animate-pulse flex gap-4" aria-hidden="true">
+            <div class="w-12 h-12 bg-slate-200 rounded-xl shrink-0"></div>
+            <div class="flex-1 space-y-2">
+              <div class="h-4 bg-slate-200 rounded w-2/3"></div>
+              <div class="h-3 bg-slate-200 rounded w-1/2"></div>
+              <div class="h-3 bg-slate-200 rounded w-1/3"></div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   </main>
+
+  <footer class="mt-8 bg-[#00005A] py-12 text-white">
+    <div class="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-4 sm:px-6 md:flex-row lg:px-8">
+      <div class="inline-flex h-32 w-56 items-center justify-center overflow-hidden rounded-[50%] border-2 border-[#b42332] bg-white p-3 shadow-lg sm:h-36 sm:w-64 md:h-40 md:w-72">
+        <img src="CityUniLogo.jpeg" alt="City University" class="h-full w-full object-contain">
+      </div>
+      <p class="text-center text-sm text-slate-400">Built for City University (CPCCU Hackathon 2)</p>
+    </div>
+  </footer>
 
   <div id="toast-root" class="fixed bottom-4 right-4 z-[200] max-w-sm w-full"></div>
   <div id="modal-overlay" class="fixed inset-0 z-[100] items-center justify-center p-4 bg-ink/50 backdrop-blur-sm" style="display:none"></div>
 
   <script type="module">
     import { renderNavbar, requireAuth, toast, escapeHtml, timeAgo, debounce, openModal, closeModal } from './js/app.js';
-    import { listDepartments, listCourses, listResources, uploadResource, deleteResource, getDownloadUrl, getProfile } from './js/api.js';
+    import { listDepartments, listCourses, listResources, uploadResource, deleteResource, reviewResource, getDownloadUrl, getProfile } from './js/api.js';
 
     let _profile = null;
     let _depts   = [];
@@ -227,6 +250,19 @@
 
       document.getElementById('clear-filters').addEventListener('click', clearFilters);
       document.getElementById('upload-btn').addEventListener('click', openUploadModal);
+      document.getElementById('resources-list').addEventListener('click', async e => {
+        const button = e.target.closest('button[data-resource-review]');
+        if (!button) return;
+        button.disabled = true;
+        try {
+          await reviewResource(button.dataset.resourceId, button.dataset.resourceReview);
+          toast(button.dataset.resourceReview === 'approved' ? 'Resource approved.' : 'Resource rejected.', 'success');
+          loadResources();
+        } catch (error) {
+          toast('Could not review resource: ' + error.message, 'error');
+          button.disabled = false;
+        }
+      });
       document.getElementById('filters-toggle').addEventListener('click', () => {
         document.getElementById('filters-panel').classList.toggle('hidden');
       });
@@ -297,7 +333,10 @@
       const kindColors = { note:'bg-blue-50 text-blue-700', question:'bg-purple-50 text-purple-700', notice:'bg-amber-50 text-amber-700' };
 
       list.innerHTML = resources.map(r => {
-        const canDelete = _profile && (r.uploaded_by === _profile.id || _profile.role === 'admin');
+        const canDelete = _profile && (r.uploaded_by === _profile.id || _profile.is_super_admin);
+        const canReview = _profile?.role === 'admin'
+          && r.status === 'pending'
+          && (_profile.is_super_admin || r.course_department === _profile.department);
         const tags = r.tags || [];
         return `
           <div id="res-${r.id}" class="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 hover:shadow-md transition-shadow group">
@@ -318,6 +357,10 @@
                   ${r.course_title ? ` · ${escapeHtml(r.course_title)}` : ''}
                 </p>
                 <p class="text-xs text-muted">by ${escapeHtml(r.uploader_name)} · ${timeAgo(r.created_at)}</p>
+                ${r.status && (r.status !== 'approved' || canReview) ? `
+                  <span class="mt-2 inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${r.status === 'pending' ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-700'}">
+                    ${escapeHtml(r.status)}
+                  </span>` : ''}
 
                 <!-- Tags -->
                 ${tags.length ? `
@@ -342,6 +385,17 @@
                   class="flex items-center gap-1.5 text-xs font-semibold text-red-400 hover:text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-lg transition ml-auto">
                   🗑️ Delete
                 </button>` : ''}
+              ${canReview ? `
+                <div class="ml-auto flex gap-2">
+                  <button data-resource-review="approved" data-resource-id="${escapeHtml(r.id)}"
+                    class="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-700">
+                    Approve
+                  </button>
+                  <button data-resource-review="rejected" data-resource-id="${escapeHtml(r.id)}"
+                    class="rounded-lg bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 transition hover:bg-red-100">
+                    Reject
+                  </button>
+                </div>` : ''}
             </div>
           </div>`;
       }).join('');
@@ -395,9 +449,14 @@
     };
 
     function openUploadModal() {
+      const uploadDepartments = _depts
+        .filter(department => _profile?.role !== 'admin'
+          || _profile.is_super_admin
+          || department.name === _profile.department);
       openModal(`
         <div class="p-6">
           <h2 class="text-xl font-bold text-ink mb-5">Upload Resource</h2>
+          <p class="mb-4 text-sm text-muted">${_profile?.role === 'admin' ? 'Admin uploads are published immediately.' : 'Student uploads are reviewed by an admin in the selected course department before they appear to others.'}</p>
           <form id="upload-form" class="space-y-4" novalidate>
             <div>
               <label class="block text-xs font-semibold uppercase text-muted mb-1 tracking-wide">Title *</label>
@@ -409,7 +468,7 @@
                 <label class="block text-xs font-semibold uppercase text-muted mb-1 tracking-wide">Department *</label>
                 <select id="up-dept" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm bg-white" required>
                   <option value="">Pick dept…</option>
-                  ${_depts.map(d => `<option value="${d.id}">${escapeHtml(d.name)}</option>`).join('')}
+                  ${uploadDepartments.map(d => `<option value="${d.id}">${escapeHtml(d.name)}</option>`).join('')}
                 </select>
               </div>
               <div>
@@ -565,7 +624,9 @@
             }
           });
           closeModal();
-          toast('Resource uploaded! 🎉', 'success');
+          toast(_profile?.role === 'admin'
+            ? 'Resource uploaded and published.'
+            : 'Resource uploaded. It will be visible after department approval.', 'success');
           loadResources();
         } catch (err) {
           errEl.textContent = err.message;

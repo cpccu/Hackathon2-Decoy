@@ -62,7 +62,7 @@ const COURSES = [
 ];
 
 const PROFILES = [
-  { id: 'user-admin',   full_name:'Admin User',  student_id:'ADM001', department:'CSE', role:'admin',   created_at: daysAgo(60) },
+  { id: 'user-admin',   full_name:'Admin User',  student_id:'ADM001', department:'CSE', role:'admin', is_super_admin:true, created_at: daysAgo(60) },
   { id: 'user-student1',full_name:'Rafi Ahmed',  student_id:'CSE2201', department:'CSE', role:'student', created_at: daysAgo(30) },
   { id: 'user-student2',full_name:'Nusrat Jahan',student_id:'EEE2202', department:'EEE', role:'student', created_at: daysAgo(25) },
 ];
@@ -104,13 +104,24 @@ const RESOURCES = [
 ];
 
 // ─── Mock "database" (mutable arrays) ────────────────────────────────────────
+const CLUB_DEPARTMENTS = {
+  'club-1': 'dept-cse',
+  'club-2': 'dept-eng',
+  'club-3': 'dept-eng',
+  'club-4': 'dept-cse',
+  'club-5': 'dept-eng',
+  'club-6': 'dept-civil',
+  'club-7': 'dept-bba',
+  'club-8': 'dept-bba',
+};
 let _clubs       = [...CLUBS];
 let _departments = [...DEPARTMENTS];
 let _courses     = [...COURSES];
 let _profiles    = [...PROFILES];
-let _events      = [...EVENTS];
+let _events      = EVENTS.map(event => ({ ...event, department_id: CLUB_DEPARTMENTS[event.club_id] }));
 let _rsvps       = [...RSVPS];
-let _resources   = [...RESOURCES];
+let _resources   = RESOURCES.map(resource => ({ ...resource, status: 'approved', reviewed_by: 'user-admin', reviewed_at: resource.created_at }));
+const _adminClubIds = { 'user-admin': CLUBS.map(club => club.id) };
 
 // ─── Session management ───────────────────────────────────────────────────────
 const SESSION_KEY = 'campusos_mock_session';
@@ -136,26 +147,86 @@ const MOCK_USERS = {
   'student1@campusos.test': { password: 'Student@12345',  id: 'user-student1' },
   'student2@campusos.test': { password: 'Student@12345',  id: 'user-student2' },
 };
+const ADMIN_INVITES_KEY = 'campusos_mock_admin_invites';
 
+function _canManageClub(profile, clubId) {
+  return profile?.role === 'admin'
+    && (profile.is_super_admin || (_adminClubIds[profile.id] || []).includes(clubId));
+}
+
+function _canManageDepartment(profile, departmentId) {
+  const department = _departments.find(item => item.id === departmentId);
+  return profile?.role === 'admin'
+    && (profile.is_super_admin || department?.name === profile.department);
+}
 // ─── Auth ─────────────────────────────────────────────────────────────────────
-export async function signUp({ email, password, full_name, student_id, department, batch }) {
+export async function signUp({
+  email, password, full_name, student_id, staff_id, department, batch,
+  requested_role = 'student', admin_kind = '', admin_invite_code = '',
+}) {
   await delay();
   if (MOCK_USERS[email]) throw new Error('Email already registered');
+  if (!['student', 'admin'].includes(requested_role)) throw new Error('Invalid account type');
+  let invite = null;
+  if (requested_role === 'admin') {
+    if (admin_kind === 'teacher' && !staff_id?.trim()) throw new Error('A teacher/admin ID is required');
+    if (admin_kind === 'senior_student' && !student_id?.trim()) throw new Error('A student ID is required for senior-student admins');
+    if (!['teacher', 'senior_student'].includes(admin_kind)) throw new Error('Invalid admin account type');
+    const invites = JSON.parse(localStorage.getItem(ADMIN_INVITES_KEY) || '[]');
+    const inviteIndex = invites.findIndex(entry => entry.code === admin_invite_code);
+    if (inviteIndex < 0) throw new Error('Admin invite code is invalid or already used');
+    if (invites[inviteIndex].superAdmin && admin_kind !== 'teacher') {
+      throw new Error('Faculty/root admin passes are only valid for teacher accounts');
+    }
+    [invite] = invites.splice(inviteIndex, 1);
+    localStorage.setItem(ADMIN_INVITES_KEY, JSON.stringify(invites));
+  }
   const id = uuid();
-  const profile = { id, full_name: full_name || email.split('@')[0], student_id, department, batch, role: 'student', created_at: now() };
+  const profile = {
+    id,
+    full_name: full_name || email.split('@')[0],
+    student_id: admin_kind === 'senior_student' || requested_role === 'student' ? student_id : null,
+    staff_id: admin_kind === 'teacher' ? staff_id : null,
+    department,
+    batch,
+    role: requested_role,
+    is_super_admin: invite?.superAdmin || false,
+    created_at: now(),
+  };
+  if (requested_role === 'admin' && !profile.is_super_admin) _adminClubIds[id] = invite.clubIds;
   MOCK_USERS[email] = { password, id };
   _profiles.push(profile);
   _saveSession(profile);
   return { user: profile, needsConfirmation: false };
 }
 
-export async function signIn(email, password) {
+export async function signIn(email, password, requestedRole) {
   await delay();
   const cred = MOCK_USERS[email];
   if (!cred || cred.password !== password) throw new Error('Invalid login credentials');
   const profile = _profiles.find(p => p.id === cred.id);
+  if (profile.role !== requestedRole) {
+    _saveSession(null);
+    const accountType = profile.role === 'admin' ? 'Admin / Teacher' : 'Student';
+    throw new Error(`This account is registered as ${accountType}. Choose ${accountType} to sign in.`);
+  }
   _saveSession(profile);
   return { user: profile };
+}
+
+export async function createAdminInvite(clubIds = [], superAdmin = false) {
+  await delay();
+  const profile = _currentProfile();
+  if (!profile || profile.role !== 'admin') throw new Error('Admin access required');
+  if (superAdmin && !profile.is_super_admin) throw new Error('Only a faculty/root admin can invite a faculty/root admin');
+  if (!superAdmin && (!clubIds.length || clubIds.some(id => !_canManageClub(profile, id)))) {
+    throw new Error('Select only clubs that you manage');
+  }
+  const code = uuid().replace(/-/g, '');
+  const invites = JSON.parse(localStorage.getItem(ADMIN_INVITES_KEY) || '[]');
+  invites.push({ code, superAdmin, clubIds: superAdmin ? [] : clubIds });
+  localStorage.setItem(ADMIN_INVITES_KEY, JSON.stringify(invites));
+  return code;
 }
 
 export async function signOut() {
@@ -179,13 +250,24 @@ export async function listClubs() {
   return [..._clubs];
 }
 
+export async function getManagedClubIds() {
+  await delay();
+  const profile = _currentProfile();
+  if (!profile || profile.role !== 'admin') throw new Error('Admin access required');
+  return profile.is_super_admin
+    ? _clubs.map(club => club.id)
+    : [...(_adminClubIds[profile.id] || [])];
+}
+
 export async function listEvents({ search = '', clubId = '', type = '', range = 'all' } = {}) {
   await delay();
+  const profile = _currentProfile();
   const now_ = new Date();
   const weekEnd = new Date(now_.getTime() + 7 * 864e5);
 
   return _events
     .filter(e => {
+      if (profile?.role === 'admin' && !_canManageDepartment(profile, e.department_id)) return false;
       const starts = new Date(e.starts_at);
       if (range === 'upcoming' && starts <= now_) return false;
       if (range === 'past'     && starts >= now_) return false;
@@ -205,33 +287,81 @@ export async function getEvent(id) {
   await delay();
   const e = _events.find(ev => ev.id === id);
   if (!e) return null;
-  return { ...e, club_name: _clubs.find(c => c.id === e.club_id)?.name || '' };
+  const profile = _currentProfile();
+  if (profile?.role === 'admin' && !_canManageDepartment(profile, e.department_id)) return null;
+  return {
+    ...e,
+    club_name: _clubs.find(c => c.id === e.club_id)?.name || '',
+    department_name: _departments.find(d => d.id === e.department_id)?.name || '',
+  };
 }
 
 export async function createEvent(data) {
   await delay();
   const p = _currentProfile();
   if (!p || p.role !== 'admin') throw new Error('Admin only');
+  if (!_canManageClub(p, data.club_id)) throw new Error('You can only create events for clubs you manage');
+  if (!_canManageDepartment(p, data.department_id)) throw new Error('You can only create events for your department');
   const ev = { id: uuid(), ...data, created_by: p.id, created_at: now() };
   _events.push(ev);
   return { ...ev, club_name: _clubs.find(c => c.id === ev.club_id)?.name || '' };
+}
+
+export async function updateEvent(id, data) {
+  await delay();
+  const profile = _currentProfile();
+  const event = _events.find(item => item.id === id);
+  if (!event) throw new Error('Event not found');
+  if (!_canManageClub(profile, event.club_id)) throw new Error('You can only edit events for clubs you manage');
+  if (!_canManageDepartment(profile, event.department_id) || !_canManageDepartment(profile, data.department_id)) {
+    throw new Error('You can only edit events for your department');
+  }
+  Object.assign(event, data);
+  return { ...event, club_name: _clubs.find(c => c.id === event.club_id)?.name || '' };
 }
 
 export async function deleteEvent(id) {
   await delay();
   const p = _currentProfile();
   if (!p || p.role !== 'admin') throw new Error('Admin only');
+  const event = _events.find(e => e.id === id);
+  if (event && (!_canManageClub(p, event.club_id) || !_canManageDepartment(p, event.department_id))) {
+    throw new Error('You can only delete events for clubs and departments you manage');
+  }
   _events = _events.filter(e => e.id !== id);
   _rsvps  = _rsvps.filter(r => r.event_id !== id);
 }
 
 export async function getRsvpCounts() {
   await delay(100);
+  const profile = _currentProfile();
   const counts = {};
   for (const r of _rsvps) {
+    const event = _events.find(item => item.id === r.event_id);
+    if (profile?.role === 'admin' && !_canManageDepartment(profile, event?.department_id)) continue;
     counts[r.event_id] = (counts[r.event_id] || 0) + 1;
   }
   return counts;
+}
+
+export async function getEventRegistrants(eventId) {
+  await delay();
+  const profile = _currentProfile();
+  const event = _events.find(item => item.id === eventId);
+  if (!_canManageClub(profile, event?.club_id) || !_canManageDepartment(profile, event?.department_id)) {
+    throw new Error('You can only view registrations for clubs you manage');
+  }
+  return _rsvps
+    .filter(rsvp => rsvp.event_id === eventId)
+    .sort((a, b) => a.created_at.localeCompare(b.created_at))
+    .map(rsvp => {
+      const attendee = _profiles.find(item => item.id === rsvp.user_id);
+      return {
+        ...rsvp,
+        full_name: attendee?.full_name || 'Unknown student',
+        student_id: attendee?.student_id || '',
+      };
+    });
 }
 
 export async function getMyRsvps() {
@@ -252,6 +382,7 @@ export async function createRsvp(eventId) {
   await delay();
   const p = _currentProfile();
   if (!p) throw new Error('Not authenticated');
+  if (p.role !== 'student') throw new Error('Only students can register for events');
   // duplicate check
   if (_rsvps.find(r => r.event_id === eventId && r.user_id === p.id)) {
     const err = new Error('duplicate key value'); err.code = '23505'; throw err;
@@ -274,6 +405,11 @@ export async function cancelRsvp(rsvpId) {
 
 export async function getEventCheckinStats(eventId) {
   await delay(100);
+  const profile = _currentProfile();
+  const event = _events.find(e => e.id === eventId);
+  if (!_canManageClub(profile, event?.club_id) || !_canManageDepartment(profile, event?.department_id)) {
+    throw new Error('You can only view check-in stats for clubs and departments you manage');
+  }
   const all = _rsvps.filter(r => r.event_id === eventId);
   return { total: all.length, checkedIn: all.filter(r => r.checked_in_at).length };
 }
@@ -284,8 +420,10 @@ export async function checkIn(rsvpId) {
   if (!p || p.role !== 'admin') return { status: 'forbidden' };
   const rsvp = _rsvps.find(r => r.id === rsvpId);
   if (!rsvp) return { status: 'invalid' };
+  const event = _events.find(e => e.id === rsvp.event_id);
+  if (!_canManageClub(p, event?.club_id) || !_canManageDepartment(p, event?.department_id)) return { status: 'forbidden' };
   const who = _profiles.find(pr => pr.id === rsvp.user_id)?.full_name || 'Unknown';
-  const ev  = _events.find(e => e.id === rsvp.event_id)?.title || 'Unknown event';
+  const ev  = event?.title || 'Unknown event';
   if (rsvp.checked_in_at) {
     return { status: 'already', name: who, event: ev, event_id: rsvp.event_id, checked_in_at: rsvp.checked_in_at };
   }
@@ -323,8 +461,13 @@ export async function listResources({ search = '', departmentId = '', semester =
 
   const keywords = search.split(/[\s,]+/).map(s => s.trim().toLowerCase()).filter(Boolean);
 
+  const profile = _currentProfile();
   return _resources
     .filter(r => {
+      const course = _courses.find(c => c.id === r.course_id);
+      if (r.status !== 'approved'
+        && r.uploaded_by !== profile?.id
+        && !_canManageDepartment(profile, course?.department_id)) return false;
       if (courseId && r.course_id !== courseId) return false;
       if (validCourseIds && !validCourseIds.has(r.course_id)) return false;
       if (kind && r.kind !== kind) return false;
@@ -338,10 +481,12 @@ export async function listResources({ search = '', departmentId = '', semester =
     .map(r => {
       const course   = _courses.find(c => c.id === r.course_id);
       const uploader = _profiles.find(p => p.id === r.uploaded_by);
+      const department = _departments.find(item => item.id === course?.department_id);
       return {
         ...r,
         course_code:   course?.code || '',
         course_title:  course?.title || '',
+        course_department: department?.name || '',
         uploader_name: uploader?.full_name || 'Unknown',
       };
     });
@@ -351,6 +496,10 @@ export async function uploadResource({ file, title, courseId, kind, tags, onProg
   await delay(800);
   const p = _currentProfile();
   if (!p) throw new Error('Not authenticated');
+  const course = _courses.find(item => item.id === courseId);
+  if (p.role === 'admin' && !_canManageDepartment(p, course?.department_id)) {
+    throw new Error('You can only upload resources for your department');
+  }
   if (onProgress) { onProgress(50); await delay(400); onProgress(100); }
   const resource = {
     id: uuid(),
@@ -361,11 +510,35 @@ export async function uploadResource({ file, title, courseId, kind, tags, onProg
     file_path: `mock/${Date.now()}-${file.name}`,
     file_name: file.name,
     uploaded_by: p.id,
+    status: p.role === 'admin' ? 'approved' : 'pending',
+    reviewed_by: p.role === 'admin' ? p.id : null,
+    reviewed_at: p.role === 'admin' ? now() : null,
     created_at: now(),
   };
   _resources.unshift(resource);
-  const course   = _courses.find(c => c.id === courseId);
-  return { ...resource, course_code: course?.code || '', course_title: course?.title || '', uploader_name: p.full_name };
+  const department = _departments.find(item => item.id === course?.department_id);
+  return {
+    ...resource,
+    course_code: course?.code || '',
+    course_title: course?.title || '',
+    course_department: department?.name || '',
+    uploader_name: p.full_name,
+  };
+}
+
+export async function reviewResource(id, status) {
+  await delay();
+  if (!['approved', 'rejected'].includes(status)) throw new Error('Resource status must be approved or rejected');
+  const profile = _currentProfile();
+  const resource = _resources.find(item => item.id === id);
+  if (!resource) throw new Error('Resource not found');
+  const course = _courses.find(item => item.id === resource.course_id);
+  if (!_canManageDepartment(profile, course?.department_id)) {
+    throw new Error('You cannot review resources for this department');
+  }
+  resource.status = status;
+  resource.reviewed_by = profile.id;
+  resource.reviewed_at = now();
 }
 
 export async function deleteResource(id) {
@@ -373,7 +546,7 @@ export async function deleteResource(id) {
   const p = _currentProfile();
   const r = _resources.find(res => res.id === id);
   if (!r) return;
-  if (p?.role !== 'admin' && r.uploaded_by !== p?.id) throw new Error('Forbidden');
+  if (!p?.is_super_admin && r.uploaded_by !== p?.id) throw new Error('Forbidden');
   _resources = _resources.filter(res => res.id !== id);
 }
 

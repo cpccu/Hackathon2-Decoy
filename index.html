@@ -3,230 +3,357 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CampusOS – Every club. Every note. One place.</title>
-  <meta name="description" content="CampusOS is the unified digital hub for City University students. Find club events, RSVP, and download academic resources — all in one place.">
+  <title>Sign in – City University</title>
+  <meta name="description" content="Sign in or create your City University account to access events and academic resources.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = { theme: { extend: {
       colors: {
-        brand: { 50:'#eef4ff', 100:'#dce9ff', 500:'#2563eb', 600:'#1d4ed8', 700:'#1e40af' },
+        brand: { 50:'#eef4ff', 500:'#2563eb', 600:'#1d4ed8', 700:'#1e40af' },
         accent: '#f59e0b', ink: '#0f172a', muted: '#64748b', surface: '#f8fafc'
       },
       fontFamily: { sans: ['Inter','system-ui','sans-serif'] },
-      animation: {
-        'fade-up':    'fadeUp 0.6s ease forwards',
-        'slide-up':   'slideUp 0.3s ease',
-        'scale-in':   'scaleIn 0.2s ease',
-        'float':      'float 3s ease-in-out infinite',
-      },
+      animation: { 'scale-in': 'scaleIn 0.3s ease', 'slide-up': 'slideUp 0.3s ease' },
       keyframes: {
-        fadeUp:  { '0%':{ opacity:0, transform:'translateY(20px)' }, '100%':{ opacity:1, transform:'translateY(0)' } },
-        slideUp: { '0%':{ opacity:0, transform:'translateY(10px)' }, '100%':{ opacity:1, transform:'translateY(0)' } },
         scaleIn: { '0%':{ opacity:0, transform:'scale(0.95)' }, '100%':{ opacity:1, transform:'scale(1)' } },
-        float:   { '0%,100%':{ transform:'translateY(0)' }, '50%':{ transform:'translateY(-8px)' } },
+        slideUp: { '0%':{ opacity:0, transform:'translateY(10px)' }, '100%':{ opacity:1, transform:'translateY(0)' } },
       }
     }}}
   </script>
-  <style>
-    body { font-family: 'Inter', sans-serif; }
-    .gradient-hero { background: linear-gradient(135deg, #0f172a 0%, #1e40af 50%, #0f172a 100%); }
-    .card-hover { transition: all 0.3s ease; }
-    .card-hover:hover { transform: translateY(-4px); box-shadow: 0 20px 40px -12px rgba(37,99,235,0.25); }
-    .glow { box-shadow: 0 0 40px rgba(37,99,235,0.3); }
-    .text-gradient { background: linear-gradient(135deg, #60a5fa, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-  </style>
+  <style>body { font-family: 'Inter', sans-serif; }</style>
 </head>
-<body class="bg-surface text-ink font-sans">
+<body class="min-h-screen bg-gradient-to-br from-slate-900 via-brand-700 to-slate-900 flex items-center justify-center p-4">
 
-  <div id="navbar"></div>
+  <!-- Background grid -->
+  <div class="fixed inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0zNiAxOGMwLTkuOTQtOC4wNi0xOC0xOC0xOFMwIDguMDYgMCAxOHM4LjA2IDE4IDE4IDE4IDE4LTguMDYgMTgtMTh6IiBmaWxsPSIjZmZmIiBmaWxsLW9wYWNpdHk9Ii4wMyIvPjwvZz48L3N2Zz4=')] opacity-30"></div>
 
-  <!-- Hero -->
-  <section class="gradient-hero text-white overflow-hidden relative">
-    <div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0zNiAxOGMwLTkuOTQtOC4wNi0xOC0xOC0xOFMwIDguMDYgMCAxOHM4LjA2IDE4IDE4IDE4IDE4LTguMDYgMTgtMTh6IiBmaWxsPSIjZmZmIiBmaWxsLW9wYWNpdHk9Ii4wMyIvPjwvZz48L3N2Zz4=')] opacity-20"></div>
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-36 relative z-10">
-      <div class="text-center animate-fade-up">
-        <div class="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-4 py-2 text-sm font-medium mb-8">
-          <span class="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
-          City University Digital Hub
-        </div>
-        <h1 class="text-5xl md:text-7xl font-black mb-6 leading-tight">
-          Every club.<br>
-          <span class="text-gradient">Every note.</span><br>
-          One place.
-        </h1>
-        <p class="text-xl md:text-2xl text-blue-200 mb-10 max-w-2xl mx-auto leading-relaxed">
-          Ditch the Facebook groups and Messenger threads. CampusOS is your campus, unified.
+  <div class="relative z-10 w-full max-w-md animate-scale-in">
+    <!-- Logo -->
+    <div class="text-center mb-8">
+      <a href="home.html" class="mx-auto inline-flex h-52 w-[22rem] items-center justify-center overflow-hidden rounded-[50%] border-4 border-[#b42332] bg-white p-6">
+        <img src="CityUniLogo.jpeg" alt="City University" class="h-full w-full object-contain">
+      </a>
+      <p class="text-blue-200 mt-1 text-sm">City University Digital Hub</p>
+    </div>
+
+    <!-- Card -->
+    <div class="bg-white rounded-3xl shadow-2xl overflow-hidden">
+      <!-- Login form -->
+      <div id="panel-login" class="p-8 animate-slide-up">
+        <h2 class="text-2xl font-extrabold text-ink mb-1">Welcome back!</h2>
+        <p class="text-muted text-sm mb-6">Sign in to your account.</p>
+        <form id="login-form" class="space-y-4" novalidate>
+          <div>
+            <label for="login-role" class="block text-xs font-semibold uppercase text-muted mb-1 tracking-wide">Account type</label>
+            <select id="login-role" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm bg-white">
+              <option value="student">Student</option>
+              <option value="admin">Admin / Teacher</option>
+            </select>
+          </div>
+          <div>
+            <label for="login-email" class="block text-xs font-semibold uppercase text-muted mb-1 tracking-wide">Email</label>
+            <input id="login-email" type="email" placeholder="you@cityuniversity.edu.bd" autocomplete="email"
+              class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition text-sm">
+            <p id="login-email-err" class="text-red-500 text-xs mt-1 hidden"></p>
+          </div>
+          <div>
+            <label for="login-password" class="block text-xs font-semibold uppercase text-muted mb-1 tracking-wide">Password</label>
+            <div class="relative">
+              <input id="login-password" type="password" placeholder="••••••••" autocomplete="current-password"
+                class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition text-sm pr-10">
+              <button type="button" onclick="togglePw('login-password', 'eye-login')" class="absolute right-3 top-3.5 text-muted hover:text-ink" aria-label="Show password">
+                <span id="eye-login">👁️</span>
+              </button>
+            </div>
+            <p id="login-password-err" class="text-red-500 text-xs mt-1 hidden"></p>
+          </div>
+          <p id="login-error" class="text-red-500 text-sm bg-red-50 rounded-lg px-3 py-2 hidden"></p>
+          <button id="login-btn" type="submit"
+            class="w-full bg-brand-600 text-white font-bold py-3 rounded-xl hover:bg-brand-700 transition-all focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 flex items-center justify-center gap-2">
+            Sign In
+          </button>
+        </form>
+        <p class="text-center text-sm text-muted mt-4">
+          No account? <button onclick="switchTab('signup')" class="text-brand-600 font-semibold hover:underline">Create one</button>
         </p>
-        <div class="flex flex-col sm:flex-row gap-4 justify-center">
-          <a id="cta-events" href="auth.html" class="bg-white text-brand-600 font-bold px-8 py-4 rounded-xl hover:bg-blue-50 transition-all duration-200 text-lg shadow-lg hover:shadow-xl">
-            📅 Browse Events
-          </a>
-          <a id="cta-resources" href="auth.html" class="bg-brand-600/30 backdrop-blur-sm border border-white/30 text-white font-bold px-8 py-4 rounded-xl hover:bg-brand-600/50 transition-all duration-200 text-lg">
-            📚 Get Resources
-          </a>
-        </div>
       </div>
 
-      <!-- Floating cards preview -->
-      <div class="mt-20 grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto opacity-80">
-        <div class="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-4 animate-float" style="animation-delay:0s">
-          <div class="text-2xl mb-2">🎭</div>
-          <div class="font-semibold">Cultural Night 2025</div>
-          <div class="text-sm text-blue-200">CU Cultural Club · Auditorium</div>
-        </div>
-        <div class="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-4 animate-float md:mt-6" style="animation-delay:1s">
-          <div class="text-2xl mb-2">📄</div>
-          <div class="font-semibold">Algorithms Midterm 2024</div>
-          <div class="text-sm text-blue-200">CSE 301 · Question Paper</div>
-        </div>
-        <div class="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-4 animate-float" style="animation-delay:2s">
-          <div class="text-2xl mb-2">🤖</div>
-          <div class="font-semibold">Robo Arena Championship</div>
-          <div class="text-sm text-blue-200">CU Robotics Club · Competition</div>
-        </div>
+      <!-- Signup form -->
+      <div id="panel-signup" class="p-8 hidden">
+        <h2 class="text-2xl font-extrabold text-ink mb-1">Join City University</h2>
+        <p class="text-muted text-sm mb-6">Create your account in seconds.</p>
+        <form id="signup-form" class="space-y-4" novalidate>
+          <div class="grid grid-cols-2 gap-3">
+            <div class="col-span-2">
+              <label for="su-account-type" class="block text-xs font-semibold uppercase text-muted mb-1 tracking-wide">I am a</label>
+              <select id="su-account-type" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm bg-white">
+                <option value="student">Student</option>
+                <option value="admin">Teacher / Admin</option>
+              </select>
+            </div>
+            <div class="col-span-2">
+              <label for="su-name" class="block text-xs font-semibold uppercase text-muted mb-1 tracking-wide">Full Name</label>
+              <input id="su-name" type="text" placeholder="Rafi Ahmed" autocomplete="name"
+                class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 transition text-sm">
+              <p id="su-name-err" class="text-red-500 text-xs mt-1 hidden"></p>
+            </div>
+            <div id="su-admin-kind-group" class="col-span-2 hidden">
+              <label for="su-admin-kind" class="block text-xs font-semibold uppercase text-muted mb-1 tracking-wide">Admin account for</label>
+              <select id="su-admin-kind" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm bg-white">
+                <option value="teacher">Teacher / Faculty</option>
+                <option value="senior_student">Senior student</option>
+              </select>
+            </div>
+            <div id="su-student-id-group">
+              <label for="su-sid" class="block text-xs font-semibold uppercase text-muted mb-1 tracking-wide">Student ID</label>
+              <input id="su-sid" type="text" placeholder="CSE2201"
+                class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 transition text-sm">
+              <p id="su-sid-err" class="text-red-500 text-xs mt-1 hidden"></p>
+            </div>
+            <div id="su-staff-id-group" class="hidden">
+              <label for="su-staff-id" class="block text-xs font-semibold uppercase text-muted mb-1 tracking-wide">Teacher / Admin ID</label>
+              <input id="su-staff-id" type="text" placeholder="Faculty ID"
+                class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 transition text-sm">
+              <p id="su-staff-id-err" class="text-red-500 text-xs mt-1 hidden"></p>
+            </div>
+            <div>
+              <label for="su-dept" class="block text-xs font-semibold uppercase text-muted mb-1 tracking-wide">Department</label>
+              <select id="su-dept"
+                class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 transition text-sm bg-white">
+                <option value="">Loading…</option>
+              </select>
+              <p id="su-dept-err" class="text-red-500 text-xs mt-1 hidden"></p>
+            </div>
+            <div id="su-admin-invite-group" class="col-span-2 hidden">
+              <label for="su-admin-invite" class="block text-xs font-semibold uppercase text-muted mb-1 tracking-wide">Faculty / Admin invite pass</label>
+              <input id="su-admin-invite" type="text" autocomplete="off" placeholder="Enter your one-time invite pass"
+                class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 transition text-sm">
+              <p class="text-xs text-muted mt-1">Ask a current admin for a pass. Senior students also need a pass; there is no verification bypass.</p>
+            </div>
+          </div>
+          <div>
+            <label for="su-email" class="block text-xs font-semibold uppercase text-muted mb-1 tracking-wide">Email</label>
+            <input id="su-email" type="email" placeholder="you@cityuniversity.edu.bd" autocomplete="email"
+              class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 transition text-sm">
+            <p id="su-email-err" class="text-red-500 text-xs mt-1 hidden"></p>
+          </div>
+          <div>
+            <label for="su-password" class="block text-xs font-semibold uppercase text-muted mb-1 tracking-wide">Password</label>
+            <div class="relative">
+              <input id="su-password" type="password" placeholder="Min 8 characters" autocomplete="new-password"
+                class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 transition text-sm pr-10">
+              <button type="button" onclick="togglePw('su-password','eye-su')" class="absolute right-3 top-3.5 text-muted hover:text-ink" aria-label="Show password">
+                <span id="eye-su">👁️</span>
+              </button>
+            </div>
+            <p id="su-password-err" class="text-red-500 text-xs mt-1 hidden"></p>
+          </div>
+          <div>
+            <label for="su-confirm" class="block text-xs font-semibold uppercase text-muted mb-1 tracking-wide">Confirm Password</label>
+            <input id="su-confirm" type="password" placeholder="Repeat password" autocomplete="new-password"
+              class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 transition text-sm">
+            <p id="su-confirm-err" class="text-red-500 text-xs mt-1 hidden"></p>
+          </div>
+          <p id="signup-error" class="text-red-500 text-sm bg-red-50 rounded-lg px-3 py-2 hidden"></p>
+          <button id="signup-btn" type="submit"
+            class="w-full bg-brand-600 text-white font-bold py-3 rounded-xl hover:bg-brand-700 transition-all focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 flex items-center justify-center gap-2">
+            Create Account
+          </button>
+        </form>
+        <p class="text-center text-sm text-muted mt-4">
+          Already have an account? <button onclick="switchTab('login')" class="text-brand-600 font-semibold hover:underline">Sign in</button>
+        </p>
       </div>
-    </div>
-  </section>
 
-  <!-- Module cards -->
-  <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-    <div class="text-center mb-14">
-      <h2 class="text-4xl font-extrabold text-ink mb-3">Two powerful modules</h2>
-      <p class="text-muted text-lg">Everything you need, nothing you don't.</p>
-    </div>
-    <div class="grid md:grid-cols-2 gap-8">
-      <!-- Events module -->
-      <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-8 card-hover group relative overflow-hidden">
-        <div class="absolute inset-0 bg-gradient-to-br from-brand-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-        <div class="relative z-10">
-          <div class="w-16 h-16 bg-brand-50 rounded-2xl flex items-center justify-center text-3xl mb-6 group-hover:scale-110 transition-transform duration-300">📅</div>
-          <h3 class="text-2xl font-bold text-ink mb-3">Club &amp; Event Engine</h3>
-          <p class="text-muted leading-relaxed mb-6">Discover events from every club. RSVP in one tap and get a digital QR pass for check-in at the door.</p>
-          <ul class="space-y-2 text-sm text-muted mb-8">
-            <li class="flex items-center gap-2"><span class="text-emerald-500">✓</span> Live event feed with filters</li>
-            <li class="flex items-center gap-2"><span class="text-emerald-500">✓</span> One-tap RSVP</li>
-            <li class="flex items-center gap-2"><span class="text-emerald-500">✓</span> Digital QR pass &amp; download</li>
-            <li class="flex items-center gap-2"><span class="text-emerald-500">✓</span> Admin QR scanner &amp; check-in</li>
-          </ul>
-          <a id="events-cta-card" href="auth.html" class="inline-flex items-center gap-2 bg-brand-600 text-white font-semibold px-6 py-3 rounded-xl hover:bg-brand-700 transition-colors">
-            Go to Events <span>→</span>
-          </a>
-        </div>
+      <!-- Email confirmation panel -->
+      <div id="panel-confirm" class="p-8 hidden text-center">
+        <div class="text-5xl mb-4">📬</div>
+        <h2 class="text-2xl font-extrabold text-ink mb-2">Check your inbox!</h2>
+        <p class="text-muted mb-4">We sent a confirmation link to your email. Click it to activate your account, then sign in.</p>
+        <button onclick="switchTab('login')" class="text-brand-600 font-semibold hover:underline text-sm">Back to Sign In</button>
       </div>
+    </div>
 
-      <!-- Resources module -->
-      <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-8 card-hover group relative overflow-hidden">
-        <div class="absolute inset-0 bg-gradient-to-br from-amber-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-        <div class="relative z-10">
-          <div class="w-16 h-16 bg-amber-50 rounded-2xl flex items-center justify-center text-3xl mb-6 group-hover:scale-110 transition-transform duration-300">📚</div>
-          <h3 class="text-2xl font-bold text-ink mb-3">Resource Hub</h3>
-          <p class="text-muted leading-relaxed mb-6">Share and find notes, question papers, and notices organized by department, semester, and course.</p>
-          <ul class="space-y-2 text-sm text-muted mb-8">
-            <li class="flex items-center gap-2"><span class="text-emerald-500">✓</span> Dept → Semester → Course filters</li>
-            <li class="flex items-center gap-2"><span class="text-emerald-500">✓</span> Keyword &amp; tag search</li>
-            <li class="flex items-center gap-2"><span class="text-emerald-500">✓</span> Upload notes, questions, notices</li>
-            <li class="flex items-center gap-2"><span class="text-emerald-500">✓</span> Secure downloads via signed URLs</li>
-          </ul>
-          <a id="resources-cta-card" href="auth.html" class="inline-flex items-center gap-2 bg-accent text-white font-semibold px-6 py-3 rounded-xl hover:bg-amber-600 transition-colors">
-            Go to Resources <span>→</span>
-          </a>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- How it works -->
-  <section class="bg-white border-y border-slate-100 py-20">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="text-center mb-14">
-        <h2 class="text-4xl font-extrabold text-ink mb-3">How it works</h2>
-        <p class="text-muted text-lg">Up and running in three steps.</p>
-      </div>
-      <div class="grid md:grid-cols-3 gap-8">
-        <div class="text-center group">
-          <div class="w-20 h-20 bg-brand-50 rounded-3xl flex items-center justify-center text-4xl mx-auto mb-5 group-hover:bg-brand-100 transition-colors duration-200">🔐</div>
-          <div class="text-5xl font-black text-brand-100 mb-2">01</div>
-          <h3 class="text-xl font-bold text-ink mb-2">Sign up with your CU email</h3>
-          <p class="text-muted">Create your account in seconds. Your role and department are set automatically.</p>
-        </div>
-        <div class="text-center group">
-          <div class="w-20 h-20 bg-emerald-50 rounded-3xl flex items-center justify-center text-4xl mx-auto mb-5 group-hover:bg-emerald-100 transition-colors duration-200">🎯</div>
-          <div class="text-5xl font-black text-emerald-100 mb-2">02</div>
-          <h3 class="text-xl font-bold text-ink mb-2">Find events &amp; resources</h3>
-          <p class="text-muted">Browse the event feed, filter by club or type, or search resources by keyword and tag.</p>
-        </div>
-        <div class="text-center group">
-          <div class="w-20 h-20 bg-amber-50 rounded-3xl flex items-center justify-center text-4xl mx-auto mb-5 group-hover:bg-amber-100 transition-colors duration-200">🎟️</div>
-          <div class="text-5xl font-black text-amber-100 mb-2">03</div>
-          <h3 class="text-xl font-bold text-ink mb-2">RSVP &amp; show up</h3>
-          <p class="text-muted">RSVP with one tap, save your QR pass, and check in at the door. Or download notes for your next exam.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Stats -->
-  <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
-      <div class="bg-white rounded-2xl p-6 text-center shadow-sm border border-slate-100">
-        <div class="text-4xl font-black text-brand-600 mb-1">8+</div>
-        <div class="text-muted text-sm">Active Clubs</div>
-      </div>
-      <div class="bg-white rounded-2xl p-6 text-center shadow-sm border border-slate-100">
-        <div class="text-4xl font-black text-brand-600 mb-1">5</div>
-        <div class="text-muted text-sm">Departments</div>
-      </div>
-      <div class="bg-white rounded-2xl p-6 text-center shadow-sm border border-slate-100">
-        <div class="text-4xl font-black text-brand-600 mb-1">20+</div>
-        <div class="text-muted text-sm">Courses Covered</div>
-      </div>
-      <div class="bg-white rounded-2xl p-6 text-center shadow-sm border border-slate-100">
-        <div class="text-4xl font-black text-brand-600 mb-1">∞</div>
-        <div class="text-muted text-sm">Resources to share</div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Footer -->
-  <footer class="bg-ink text-white py-12 mt-8">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex flex-col md:flex-row items-center justify-between gap-4">
-        <div class="flex items-center gap-2 font-extrabold text-xl">
-          <span class="text-2xl">🎓</span> CampusOS
-        </div>
-        <p class="text-slate-400 text-sm text-center">Built for City University (CPCCU Hackathon 2). Replace scattered chats with one platform.</p>
-        <div class="flex gap-4 text-sm text-slate-400">
-          <a href="events.html"    class="hover:text-white transition">Events</a>
-          <a href="resources.html" class="hover:text-white transition">Resources</a>
-          <a href="auth.html"      class="hover:text-white transition">Sign in</a>
-        </div>
-      </div>
-    </div>
-  </footer>
+  </div>
 
   <div id="toast-root" class="fixed bottom-4 right-4 z-[200] max-w-sm w-full"></div>
 
   <script type="module">
-    import { renderNavbar } from './js/app.js';
-    import { getSession }   from './js/api.js';
+    import { signIn, signUp, getSession, listDepartments } from './js/api.js';
+    import { toast } from './js/app.js';
 
-    renderNavbar();
+    function getNextPage() {
+      const next = new URLSearchParams(location.search).get('next');
+      if (!next) return 'home.html';
 
-    // Update CTAs if logged in
-    getSession().then(session => {
-      if (session) {
-        ['cta-events','events-cta-card'].forEach(id => {
-          const el = document.getElementById(id);
-          if (el) el.href = 'events.html';
-        });
-        ['cta-resources','resources-cta-card'].forEach(id => {
-          const el = document.getElementById(id);
-          if (el) el.href = 'resources.html';
-        });
+      try {
+        const url = new URL(next, location.origin);
+        if (url.origin !== location.origin) return 'home.html';
+        if (url.pathname === '/' || url.pathname === '/index.html') return 'home.html';
+        return `${url.pathname}${url.search}${url.hash}`;
+      } catch {
+        return 'home.html';
+      }
+    }
+
+    // Redirect if already logged in
+    getSession().then(s => {
+      if (s) {
+        const next = getNextPage();
+        location.href = next;
       }
     });
+
+    // Load departments into signup select
+    listDepartments().then(depts => {
+      const sel = document.getElementById('su-dept');
+      sel.innerHTML = '<option value="">Select department</option>' +
+        depts.map(d => `<option value="${d.name}">${d.name}</option>`).join('');
+    }).catch(() => {
+      document.getElementById('su-dept').innerHTML = `
+        <option value="">Select department</option>
+        ${['CSE', 'EEE', 'BBA', 'English', 'Civil Engineering']
+          .map(name => `<option value="${name}">${name}</option>`).join('')}`;
+    });
+
+    window.switchTab = (tab) => {
+      ['login','signup','confirm'].forEach(t => {
+        document.getElementById(`panel-${t}`).classList.add('hidden');
+      });
+      document.getElementById(`panel-${tab}`).classList.remove('hidden');
+    };
+
+    window.togglePw = (inputId, eyeId) => {
+      const inp = document.getElementById(inputId);
+      inp.type = inp.type === 'password' ? 'text' : 'password';
+    };
+
+    function setLoading(btn, loading) {
+      btn.disabled = loading;
+      btn.innerHTML = loading
+        ? '<svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg> Please wait…'
+        : btn.dataset.label;
+      if (!loading) btn.innerHTML = btn.dataset.label;
+    }
+
+    function showErr(id, msg) {
+      const el = document.getElementById(id);
+      el.textContent = msg;
+      el.classList.toggle('hidden', !msg);
+    }
+
+    // Login
+    const loginForm = document.getElementById('login-form');
+    const loginBtn  = document.getElementById('login-btn');
+    loginBtn.dataset.label = 'Sign In';
+
+    loginForm.addEventListener('submit', async e => {
+      e.preventDefault();
+      const email = document.getElementById('login-email').value.trim();
+      const password = document.getElementById('login-password').value;
+      const requestedRole = document.getElementById('login-role').value;
+
+      let valid = true;
+      showErr('login-email-err', ''); showErr('login-password-err', ''); showErr('login-error', '');
+      if (!email)    { showErr('login-email-err', 'Email is required'); valid = false; }
+      if (!password) { showErr('login-password-err', 'Password is required'); valid = false; }
+      if (!valid) return;
+
+      setLoading(loginBtn, true);
+      try {
+        await signIn(email, password, requestedRole);
+        toast('Welcome back! 🎉', 'success');
+        const next = getNextPage();
+        setTimeout(() => location.href = next, 800);
+      } catch (err) {
+        showErr('login-error', err.message || 'Login failed. Check your credentials.');
+      } finally {
+        setLoading(loginBtn, false);
+        loginBtn.innerHTML = loginBtn.dataset.label;
+      }
+    });
+
+    // Signup
+    const signupForm = document.getElementById('signup-form');
+    const signupBtn  = document.getElementById('signup-btn');
+    signupBtn.dataset.label = 'Create Account';
+
+    signupForm.addEventListener('submit', async e => {
+      e.preventDefault();
+      const full_name  = document.getElementById('su-name').value.trim();
+      const student_id = document.getElementById('su-sid').value.trim();
+      const staff_id   = document.getElementById('su-staff-id').value.trim();
+      const department = document.getElementById('su-dept').value;
+      const requested_role = document.getElementById('su-account-type').value;
+      const admin_kind = requested_role === 'admin' ? document.getElementById('su-admin-kind').value : '';
+      const admin_invite_code = document.getElementById('su-admin-invite').value.trim();
+      const email      = document.getElementById('su-email').value.trim();
+      const password   = document.getElementById('su-password').value;
+      const confirm    = document.getElementById('su-confirm').value;
+
+      let valid = true;
+      ['su-name-err','su-sid-err','su-staff-id-err','su-dept-err','su-email-err','su-password-err','su-confirm-err','signup-error'].forEach(id => showErr(id, ''));
+
+      if (!full_name)              { showErr('su-name-err', 'Full name is required'); valid = false; }
+      if ((requested_role === 'student' || admin_kind === 'senior_student') && !student_id) {
+        showErr('su-sid-err', 'Student ID is required'); valid = false;
+      }
+      if (requested_role === 'admin' && admin_kind === 'teacher' && !staff_id) {
+        showErr('su-staff-id-err', 'Teacher / Admin ID is required'); valid = false;
+      }
+      if (!department)             { showErr('su-dept-err', 'Select your department'); valid = false; }
+      if (requested_role === 'admin' && !admin_invite_code) {
+        showErr('signup-error', 'An invite pass from a current admin is required for admin accounts'); valid = false;
+      }
+      if (!email)                  { showErr('su-email-err', 'Email is required'); valid = false; }
+      if (password.length < 8)     { showErr('su-password-err', 'Password must be at least 8 characters'); valid = false; }
+      if (password !== confirm)    { showErr('su-confirm-err', 'Passwords do not match'); valid = false; }
+      if (!valid) return;
+
+      setLoading(signupBtn, true);
+      try {
+        const { needsConfirmation } = await signUp({
+          email,
+          password,
+          full_name,
+          student_id: requested_role === 'student' || admin_kind === 'senior_student' ? student_id : '',
+          staff_id: admin_kind === 'teacher' ? staff_id : '',
+          department,
+          requested_role,
+          admin_kind,
+          admin_invite_code,
+        });
+        if (needsConfirmation) {
+          ['login','signup'].forEach(t => document.getElementById(`panel-${t}`).classList.add('hidden'));
+          document.getElementById('panel-confirm').classList.remove('hidden');
+        } else {
+          toast('Account created! 🎉', 'success');
+          const next = getNextPage();
+          setTimeout(() => location.href = next, 800);
+        }
+      } catch (err) {
+        showErr('signup-error', err.message || 'Signup failed. Please try again.');
+      } finally {
+        setLoading(signupBtn, false);
+        signupBtn.innerHTML = signupBtn.dataset.label;
+      }
+    });
+
+    const accountTypeSelect = document.getElementById('su-account-type');
+    const adminKindSelect = document.getElementById('su-admin-kind');
+    function updateSignupFields() {
+      const isAdmin = accountTypeSelect.value === 'admin';
+      const isSeniorStudent = isAdmin && adminKindSelect.value === 'senior_student';
+      document.getElementById('su-admin-kind-group').classList.toggle('hidden', !isAdmin);
+      document.getElementById('su-admin-invite-group').classList.toggle('hidden', !isAdmin);
+      document.getElementById('su-student-id-group').classList.toggle('hidden', isAdmin && !isSeniorStudent);
+      document.getElementById('su-staff-id-group').classList.toggle('hidden', !isAdmin || isSeniorStudent);
+    }
+    accountTypeSelect.addEventListener('change', updateSignupFields);
+    adminKindSelect.addEventListener('change', updateSignupFields);
+    updateSignupFields();
   </script>
 </body>
 </html>
