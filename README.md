@@ -1,189 +1,280 @@
 # CampusOS
 
-> **Every club. Every note. One place.**  
-> Built for City University (CPCCU Hackathon 2)
+**CampusOS brings City University events and academic resources into one place.**
 
----
+Students can discover campus events, RSVP, and access a digital pass. They can
+also find or share course materials through a searchable resource hub. Club and
+department administrators have the tools to manage events and review resources
+within their assigned responsibilities.
 
-## The Problem
+## Contents
 
-City University students juggle dozens of Facebook groups and Messenger chats — one for each club, one per batch, one per course. Events get missed. Notes are buried in threads. There is no single authoritative place to:
+- [What the application includes](#what-the-application-includes)
+- [Technology and architecture](#technology-and-architecture)
+- [Run the project locally](#run-the-project-locally)
+- [Connect Supabase](#connect-supabase)
+- [Roles and access](#roles-and-access)
+- [Pages and project layout](#pages-and-project-layout)
+- [Verification checklist](#verification-checklist)
+- [Security and operational notes](#security-and-operational-notes)
+- [Known limitations](#known-limitations)
 
-- Find out what's happening on campus
-- Share or download academic resources
-- Check in to events without a paper list
+## What the application includes
 
----
+### Events
 
-## The Solution & Modules
+- Browse and filter upcoming, current-week, past, or all events.
+- View event details, capacity, and registration counts.
+- Students can RSVP and view a QR pass; administrators cannot RSVP.
+- Authorized administrators can create and edit events, see attendee names and
+  student IDs, and check attendees in using the scanner or manual entry.
 
-**CampusOS** replaces scattered chats with one unified platform:
+### Resource Hub
 
-| Module | What it does |
+- Browse resources by department, semester, course, type, title, and tags.
+- Upload notes, question papers, and notices.
+- Student uploads remain pending until an administrator responsible for the
+  course department approves them.
+- Download approved uploads using short-lived Supabase Storage links.
+- Three small `[DEMO]` text resources are included in the seed script. Their
+  original files are in [`demo-resources/`](./demo-resources/).
+
+## Technology and architecture
+
+CampusOS is a static, multi-page web application. It does not run a custom
+application server or require a build step.
+
+| Area | Technology |
 |---|---|
-| **Club & Event Engine** | Browse events, student RSVP and QR passes, club-scoped admin event editing, registration lists, and scanner check-in |
-| **Resource Hub** | Upload & find notes, question papers, notices by Dept → Sem → Course; student uploads are department-approved |
+| Pages | HTML5 |
+| Styling | Tailwind CSS CDN |
+| Application code | Vanilla JavaScript with ES modules |
+| Authentication and database | Supabase Auth and PostgreSQL |
+| File storage | Private Supabase Storage bucket |
+| QR passes and scanning | `qrcode.js` and `html5-qrcode` |
+| Static hosting | GitHub Pages or another static host |
 
-### Architecture
-
-```
-Browser (HTML/CSS/JS)
+```text
+HTML pages
     │
-    ▼
-js/api.js  ◄── single gateway, switches between real/mock
-    │                │
-    ▼                ▼
-js/api.real.js   js/api.mock.js
-(Supabase)       (in-memory)
-    │
-    ▼
-Supabase (Postgres + Auth + Storage)
+    ├── js/app.js       Shared navigation, UI helpers, and auth guards
+    └── js/api.js       Selects the configured data implementation
+          ├── js/api.real.js  Supabase Auth, PostgREST, RPC, and Storage
+          └── js/api.mock.js  In-memory demo implementation
+                                   │
+                                   ▼
+                         Supabase (real mode only)
 ```
 
----
+## Run the project locally
 
-## Tech Stack
+1. Clone the repository and enter its directory:
 
-| Layer | Choice |
-|---|---|
-| Markup | HTML5, multi-page static site |
-| Styling | Tailwind CSS via CDN |
-| Logic | Vanilla JS, ES modules |
-| Backend | Supabase (Postgres, Auth, Storage) |
-| QR generate | qrcode.js CDN |
-| QR scan | html5-qrcode CDN |
-| Hosting | GitHub Pages |
+   ```bash
+   git clone https://github.com/cpccu/Hackathon2-Decoy.git
+   cd Hackathon2-Decoy
+   ```
 
----
+2. Serve the folder over HTTP. For example:
 
-## Live Demo
+   ```bash
+   npx serve .
+   ```
 
-🌐 **URL:** https://cpccu.github.io/Hackathon2-Decoy/
-🎬 **Demo video:** *(link here)*
+   Or use the VS Code Live Server extension. Open the local address it prints,
+   usually `http://localhost:3000` or `http://127.0.0.1:5500`.
 
----
+   Do not open the HTML files directly with a `file://` URL. The app uses
+   JavaScript modules and browser authentication storage that require an HTTP
+   origin.
 
-## Local Run Steps
+3. Sign in with a configured Supabase account when running in real mode. The
+   default project configuration uses the real backend; demo accounts must
+   exist in that Supabase project before they can sign in.
 
-```bash
-# 1. Clone the repo
-git clone https://github.com/cpccu/Hackathon2-Decoy.git
-cd Hackathon2-Decoy
+## Connect Supabase
 
-# 2. Set up config
-cp js/config.example.js js/config.js
-# Edit js/config.js with your SUPABASE_URL and SUPABASE_ANON_KEY
-# Set USE_MOCK = false (or keep true for demo mode)
+The frontend uses the project URL and a **publishable/anon key** in
+[`js/config.js`](./js/config.js). These are intended for browser applications;
+database permissions must be enforced by Row Level Security (RLS).
 
-# 3. (Backend) Run SQL in Supabase SQL editor in order:
-#    sql/schema.sql  →  sql/policies.sql  →  sql/seed.sql
+Never put a Supabase `service_role` key, database password, or other secret in
+frontend code or this repository.
 
-# 4. Create admin@campusos.test in Supabase Auth, then promote it to faculty/root
-#    admin as described in docs/BACKEND.md; rerun sql/seed.sql to add demo resources.
-# 5. Create student accounts through the signup page:
-#    student1@campusos.test / Student@12345
-#    student2@campusos.test / Student@12345
-#    Root admins issue club-scoped admin passes from admin.html.
-# 6. Serve locally
-npx serve .
-# or use VS Code Live Server extension
-```
+### Database setup
 
-> **Note:** Email confirmation is disabled for the hackathon. If your Supabase project has it enabled, go to **Auth → Settings** and disable it.
+Run these scripts in the Supabase SQL Editor, in order:
 
----
+1. [`sql/schema.sql`](./sql/schema.sql) — tables, relationships, triggers, and
+   database functions.
+2. [`sql/policies.sql`](./sql/policies.sql) — RLS and Storage access policies.
+3. Create and promote the initial faculty/root administrator as described
+   below.
+4. [`sql/seed.sql`](./sql/seed.sql) — sample clubs, departments, courses,
+   events, and demo resources.
+5. [`sql/tests.sql`](./sql/tests.sql) — read-only checks of schema, policies,
+   seed data, and demo resource count.
 
-## Seed Credentials
+If the Supabase project already contains older `events` or `resources` tables,
+review the migration and backup behavior documented in
+[`sql/schema.sql`](./sql/schema.sql) before applying it. Do not delete legacy
+backup tables unless you have separately confirmed their data is no longer
+needed.
+
+### Create the initial administrator
+
+1. In Supabase, disable email confirmation for this demo under **Authentication
+   → Providers → Email**.
+2. Create `admin@campusos.test` under **Authentication → Users** and enable
+   auto-confirm. The schema's Auth trigger creates its profile.
+3. Promote that account in the SQL Editor:
+
+   ```sql
+   update public.profiles
+   set role = 'admin',
+       is_super_admin = true,
+       full_name = 'CampusOS Admin',
+       staff_id = 'ADM001',
+       department = 'CSE'
+   where id = (
+     select id
+     from auth.users
+     where email = 'admin@campusos.test'
+   );
+   ```
+
+   Confirm that one profile row was updated. If the update affects zero rows,
+   check that the Auth user exists and has a profile before proceeding.
+
+4. Run `sql/seed.sql` after promotion. Its three `[DEMO]` resource records are
+   associated with this root administrator. The seed script is safe to rerun.
+
+For a local-only demonstration, the documented starter account is:
 
 | Role | Email | Password |
 |---|---|---|
-| Admin | `admin@campusos.test` | `Admin@12345` |
-| Student | `student1@campusos.test` | `Student@12345` |
-| Student | `student2@campusos.test` | `Student@12345` |
+| Faculty/root admin | `admin@campusos.test` | `Admin@12345` |
 
----
+Create the user in Supabase Auth and set its password to the listed value if
+you want to use this account. This is a demo credential only: change it or
+remove the account before any public or production use. Students can create
+accounts using the signup page. Admin accounts require a one-time invitation.
+Student IDs for student and senior-student-admin accounts must contain exactly
+16 digits; leading zeroes are preserved as part of the ID.
 
-## Real-World Student Scenarios
+### Add Supabase credentials to the frontend
 
-### 1 — Rafi finds his Algorithms midterm
-*Rafi is CSE semester 5. He needs last year's midterm paper.*
-1. Opens `resources.html`, sets Department → **CSE**, Semester → **3**, Course → **CSE 301 Algorithms**
-2. Sees the list instantly. Searches `midterm`.
-3. Clicks **Download** — seed examples open directly; uploaded resources use a
-   signed, short-lived URL. Done in 10 seconds.
+Find the project URL and publishable/anon key in **Project Settings → API**.
+Set `SUPABASE_URL` and `SUPABASE_ANON_KEY` in `js/config.js` and ensure
+`USE_MOCK` is `false`. The browser must never receive a `service_role` key.
 
-### 2 — Nusrat RSVPs to Cultural Night
-*Nusrat sees a Cultural Night event on the feed.*
-1. Opens `events.html`, spots the event card.
-2. Clicks **See Details** → RSVP page.
-3. Taps **🎟️ RSVP Now** → "You're Registered!" toast.
-4. Clicks **View My Pass** → sees her QR code, downloads the PNG to her phone.
+For local development, configure the Supabase Auth site URL and redirect URLs
+to include the local address you use. For deployment, add the production
+domain as well.
 
-Club admins can edit the event details or schedule and see the registered
-students' names and student IDs on its detail page. Admin accounts cannot RSVP.
-Students see events from every department; department admins see only their
-department's events, while the faculty/root admin sees them all.
+## Roles and access
 
-### 3 — Admin checks in at the door
-*Admin is standing at the Auditorium entrance with a laptop.*
-1. Opens `scan.html`, selects "Cultural Night" from the event dropdown.
-2. Clicks **▶ Start** — camera activates.
-3. Nusrat shows her QR code → scanner beeps → **✅ Nusrat Jahan checked in!**
-4. Counter updates: **1 / 87 checked in**.
-5. Re-scan shows: **⚠️ Already checked in 2m ago**.
+Permissions are enforced by Supabase RLS and database functions; hiding a
+button in the browser is not an authorization boundary.
 
----
+| Account | Events | RSVP and check-in | Resources |
+|---|---|---|---|
+| Student | Can view events across departments | Can RSVP to events and use their own pass | Can upload; uploads wait for department approval |
+| Department/club admin | Can view events for their department; can manage only assigned clubs and authorized departments | Cannot RSVP; can check in attendees for assigned clubs | Can review resources for their department |
+| Faculty/root admin | Can view and manage events across departments and clubs | Cannot RSVP; can check in attendees | Can review all departments and manage resources |
 
-## Project Structure
+Admin invitations are one-time passes. Club administrators can issue invites
+only within their permitted club scope; only faculty/root administrators can
+issue a faculty/root invitation. A profile's admin and root privileges cannot
+be granted or changed by frontend requests.
 
-```
-Hackathon2-Decoy/
-├── index.html         Sign in / Sign up (site entry page)
-├── home.html          Events / Resources chooser
-├── events.html        Event feed + filters + admin create/edit
-├── event.html         Detail + student RSVP/pass + admin registrant list
-├── scan.html          Admin QR scanner
-├── admin.html         Admin invite management
-├── resources.html     Resource Hub
-├── js/
-│   ├── config.js      SUPABASE_URL, KEY, USE_MOCK  (public values only)
-│   ├── config.example.js
-│   ├── app.js         Shared UI: navbar, toast, modal, auth guards
-│   ├── api.js         Router → real or mock
-│   ├── api.real.js    Supabase implementation
-│   ├── api.mock.js    In-memory mock with City University data
-│   ├── events.js      (unused direct module — logic inline in HTML)
-│   └── resources.js   (unused direct module — logic inline in HTML)
-├── sql/
-│   ├── schema.sql
-│   ├── policies.sql
-│   └── seed.sql
-├── docs/
-│   ├── FRONTEND.md
-│   └── BACKEND.md
-└── .gitignore
-```
+## Pages and project layout
 
----
+| Page or directory | Purpose |
+|---|---|
+| [`index.html`](./index.html) | Sign in and account creation |
+| [`home.html`](./home.html) | Authenticated landing page and module links |
+| [`events.html`](./events.html) | Event feed, filters, and authorized event management |
+| [`event.html`](./event.html) | Event information, student pass, and authorized attendee list |
+| [`scan.html`](./scan.html) | Administrator QR and manual check-in |
+| [`admin.html`](./admin.html) | Administrator invitation management |
+| [`resources.html`](./resources.html) | Resource search, upload, review, and downloads |
+| [`js/`](./js/) | Shared UI, API gateway, real and mock data implementations |
+| [`sql/`](./sql/) | Supabase schema, security policies, seed data, and checks |
+| [`demo-resources/`](./demo-resources/) | Small original static text files for demo resource records |
 
-## Security Notes
+### Mock and real API implementations
 
-- **Only the Supabase anon key** is in `config.js`. It is safe to commit because Supabase Row Level Security (RLS) enforces all permissions server-side.
-- The `service_role` key is **never** used in frontend code.
-- All user-generated content is passed through `escapeHtml()` before rendering via `innerHTML` — preventing XSS.
-- Admin-only actions are enforced by RLS and server-side RPC. Club admins can manage only assigned clubs; faculty/root admins manage all clubs.
-- Students see all events; department admins see only events for their profile department. Faculty/root access is controlled by the database `is_super_admin` flag (set for `admin@campusos.test` in the backend setup), not an email check in the frontend.
-- Student resource uploads stay pending until an admin for the course department approves them.
-- Admin accounts require one-time passes created from the admin page. The database verifies and consumes each pass and does not retain the plaintext code.
-- Storage bucket is private. Downloads use short-lived signed URLs (60 s).
+Pages use `js/api.js` as the data access gateway. It selects either the real
+Supabase adapter or the mock adapter using `USE_MOCK` in `js/config.js`. Both
+implementations expose matching application operations for authentication,
+events, RSVPs, resource upload/review, and downloads.
 
----
+The mock backend is useful for UI development. It is not a substitute for
+testing authorization, persistence, or file storage against Supabase. In real
+mode, approved demo text files are served as static site assets; user uploads
+remain in the private Storage bucket and use signed links.
 
-## Assumptions & Known Limitations
+## Verification checklist
 
-- Email confirmation is assumed **disabled** in Supabase for the hackathon demo.
-- The first faculty/root admin must be provisioned by the project owner in Supabase; that account can issue club-scoped invites for additional admins.
-- `resources.js` and `events.js` contain JS logic that is inlined directly in the HTML pages for simplicity (no build step). Exported modules exist as scaffolding.
-- The mock implementation stores state in memory and `sessionStorage` — data resets on tab close.
-- The `seed.sql` does not upload real files to Storage (impossible from SQL). Demo resource downloads in mock mode return a text blob placeholder.
-- `scan.html` requires HTTPS for camera access (all major static hosts provide this).
+Run [`sql/tests.sql`](./sql/tests.sql) in the Supabase SQL Editor after the
+database scripts. Its demo resource count should be **3** after the root
+administrator has been created/promoted and `seed.sql` has been run.
+
+Then sign in through the local app and check:
+
+- Student signup creates a student profile; admin signup requires a valid
+  invitation.
+- Login rejects a mismatch between the selected account type and profile role.
+- Students can see events across departments, while department admins see only
+  their department's events and the faculty/root admin sees all.
+- Students can RSVP and use their pass; admin accounts cannot RSVP.
+- Authorized admins can edit assigned events, view attendee details, and scan
+  or manually check in a pass. A second scan reports that the attendee is
+  already checked in.
+- Resource search and filters work. Student uploads remain pending until the
+  appropriate admin approves them; approved files can be downloaded.
+- The three `[DEMO]` resources appear, and a demo download opens the matching
+  text file.
+- Protected pages redirect logged-out users to sign in, then return them to
+  their requested page.
+- At mobile width, the navbar, event/resource pages, and footer remain usable.
+
+The SQL checks are not a substitute for these authenticated browser checks.
+Check Supabase logs for backend failures; do not weaken RLS to hide an
+application error.
+
+## Security and operational notes
+
+- RLS is the authority for database access. The publishable/anon key is not a
+  secret and must be paired with correct RLS policies.
+- The application must never use a `service_role` key in the browser.
+- Admin role and club scope are derived from protected invitation records.
+- RSVP creation is restricted to student profiles. Check-in is performed by a
+  restricted database function; clients cannot directly update RSVP records.
+- The `resources` Storage bucket is private. Uploaded files use a path scoped to
+  the uploader, and downloads use signed URLs that expire after 60 seconds.
+- Student resource uploads are private while pending. Approval is limited to
+  an administrator responsible for the course department or the faculty/root
+  administrator.
+- The `[DEMO]` resource text files are non-sensitive static examples served
+  with the site, not private Storage objects. Do not use this mechanism for
+  user uploads or private material.
+- QR passes encode the RSVP identifier, not a student's personal details.
+- The scanner needs a secure browser context for camera access. HTTPS is
+  required in deployment; localhost is treated as secure by modern browsers.
+- The demo disables email confirmation for ease of testing. Review this and
+  other authentication settings before production use.
+
+## Known limitations
+
+- The application has no custom backend server or build pipeline.
+- The mock implementation is in-memory and intended only for demonstrations;
+  its data is not durable.
+- SQL can create resource metadata but cannot upload files. The included demo
+  resources use static text assets; test private Storage uploads separately
+  through the application.
+- Public demo credentials are not suitable for production. Replace them and
+  review all Supabase Auth, redirect, and RLS settings before launch.
+- The project has not been independently penetration-tested or certified for
+  production use.

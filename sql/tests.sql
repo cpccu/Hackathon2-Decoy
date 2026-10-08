@@ -56,5 +56,5 @@ where schemaname = 'public'
 order by tablename, policyname;
 
 -- Complete signup, RLS, RSVP-capacity, and storage checks with authenticated
--- browser sessions as described in docs/BACKEND.md. Do not test these by
+-- browser sessions as described in README.md. Do not test these by
 -- granting the service_role key to a browser.

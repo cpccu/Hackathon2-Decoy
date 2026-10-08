@@ -35,7 +35,7 @@
       <a href="home.html" class="mx-auto inline-flex h-52 w-[22rem] items-center justify-center overflow-hidden rounded-[50%] border-4 border-[#b42332] bg-white p-6">
         <img src="CityUniLogo.jpeg" alt="City University" class="h-full w-full object-contain">
       </a>
-      <p class="text-blue-200 mt-1 text-sm">City University Digital Hub</p>
+      <p class="text-blue-200 mt-1 text-sm"></p>
     </div>
 
     <!-- Card -->
@@ -108,8 +108,9 @@
             </div>
             <div id="su-student-id-group">
               <label for="su-sid" class="block text-xs font-semibold uppercase text-muted mb-1 tracking-wide">Student ID</label>
-              <input id="su-sid" type="text" placeholder="CSE2201"
+              <input id="su-sid" type="text" inputmode="numeric" autocomplete="off" maxlength="16" minlength="16" pattern="[0-9]{16}" placeholder="0272310005101052" aria-describedby="su-sid-hint su-sid-err"
                 class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 transition text-sm">
+              <p id="su-sid-hint" class="text-muted text-xs mt-1">Enter your 16-digit student ID.</p>
               <p id="su-sid-err" class="text-red-500 text-xs mt-1 hidden"></p>
             </div>
             <div id="su-staff-id-group" class="hidden">
@@ -297,8 +298,8 @@
       ['su-name-err','su-sid-err','su-staff-id-err','su-dept-err','su-email-err','su-password-err','su-confirm-err','signup-error'].forEach(id => showErr(id, ''));
 
       if (!full_name)              { showErr('su-name-err', 'Full name is required'); valid = false; }
-      if ((requested_role === 'student' || admin_kind === 'senior_student') && !student_id) {
-        showErr('su-sid-err', 'Student ID is required'); valid = false;
+      if ((requested_role === 'student' || admin_kind === 'senior_student') && !/^[0-9]{16}$/.test(student_id)) {
+        showErr('su-sid-err', 'Enter a valid 16-digit student ID'); valid = false;
       }
       if (requested_role === 'admin' && admin_kind === 'teacher' && !staff_id) {
         showErr('su-staff-id-err', 'Teacher / Admin ID is required'); valid = false;
@@ -343,6 +344,9 @@
 
     const accountTypeSelect = document.getElementById('su-account-type');
     const adminKindSelect = document.getElementById('su-admin-kind');
+    document.getElementById('su-sid').addEventListener('input', event => {
+      event.target.value = event.target.value.replace(/[^0-9]/g, '').slice(0, 16);
+    });
     function updateSignupFields() {
       const isAdmin = accountTypeSelect.value === 'admin';
       const isSeniorStudent = isAdmin && adminKindSelect.value === 'senior_student';

@@ -62,9 +62,9 @@ const COURSES = [
 ];
 
 const PROFILES = [
-  { id: 'user-admin',   full_name:'Admin User',  student_id:'ADM001', department:'CSE', role:'admin', is_super_admin:true, created_at: daysAgo(60) },
-  { id: 'user-student1',full_name:'Rafi Ahmed',  student_id:'CSE2201', department:'CSE', role:'student', created_at: daysAgo(30) },
-  { id: 'user-student2',full_name:'Nusrat Jahan',student_id:'EEE2202', department:'EEE', role:'student', created_at: daysAgo(25) },
+  { id: 'user-admin',   full_name:'Admin User',  student_id:null, department:'CSE', role:'admin', is_super_admin:true, created_at: daysAgo(60) },
+  { id: 'user-student1',full_name:'Rafi Ahmed',  student_id:'0272310005101052', department:'CSE', role:'student', created_at: daysAgo(30) },
+  { id: 'user-student2',full_name:'Nusrat Jahan',student_id:'0272310005101053', department:'EEE', role:'student', created_at: daysAgo(25) },
 ];
 
 const EVENTS = [
@@ -167,6 +167,9 @@ export async function signUp({
   await delay();
   if (MOCK_USERS[email]) throw new Error('Email already registered');
   if (!['student', 'admin'].includes(requested_role)) throw new Error('Invalid account type');
+  if ((requested_role === 'student' || admin_kind === 'senior_student') && !/^[0-9]{16}$/.test(student_id || '')) {
+    throw new Error('Enter a valid 16-digit student ID');
+  }
   let invite = null;
   if (requested_role === 'admin') {
     if (admin_kind === 'teacher' && !staff_id?.trim()) throw new Error('A teacher/admin ID is required');

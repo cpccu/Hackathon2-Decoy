@@ -119,6 +119,11 @@ begin
     raise exception 'Invalid account type';
   end if;
 
+  if requested_role = 'student'
+     and coalesce(new.raw_user_meta_data->>'student_id', '') !~ '^[0-9]{16}$' then
+    raise exception 'Student ID must contain exactly 16 digits';
+  end if;
+
   if requested_role = 'admin' then
     if invite_code is null or length(trim(invite_code)) = 0 then
       raise exception 'An admin invite code is required';
@@ -127,8 +132,8 @@ begin
        and nullif(trim(new.raw_user_meta_data->>'staff_id'), '') is null then
       raise exception 'A teacher/admin ID is required';
     elsif admin_kind = 'senior_student'
-       and nullif(trim(new.raw_user_meta_data->>'student_id'), '') is null then
-      raise exception 'A student ID is required for senior-student admins';
+       and coalesce(new.raw_user_meta_data->>'student_id', '') !~ '^[0-9]{16}$' then
+      raise exception 'Student ID must contain exactly 16 digits for senior-student admins';
     elsif admin_kind is distinct from 'teacher'
       and admin_kind is distinct from 'senior_student' then
       raise exception 'Invalid admin account type';
