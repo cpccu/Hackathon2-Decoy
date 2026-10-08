@@ -24,22 +24,19 @@
   </script>
   <style>body { font-family: 'Inter', sans-serif; }</style>
 </head>
-<body class="min-h-screen bg-gradient-to-br from-slate-900 via-brand-700 to-slate-900 flex items-center justify-center p-4">
-
-  <!-- Background grid -->
-  <div class="fixed inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0zNiAxOGMwLTkuOTQtOC4wNi0xOC0xOC0xOFMwIDguMDYgMCAxOHM4LjA2IDE4IDE4IDE4IDE4LTguMDYgMTgtMTh6IiBmaWxsPSIjZmZmIiBmaWxsLW9wYWNpdHk9Ii4wMyIvPjwvZz48L3N2Zz4=')] opacity-30"></div>
+<body class="min-h-screen bg-surface flex items-center justify-center p-4">
 
   <div class="relative z-10 w-full max-w-md animate-scale-in">
     <!-- Logo -->
     <div class="text-center mb-8">
-      <a href="index.html" class="inline-flex items-center gap-2 text-white font-extrabold text-2xl">
+      <a href="index.html" class="inline-flex items-center gap-2 text-ink font-extrabold text-2xl">
         <span class="text-3xl">🎓</span> CampusOS
       </a>
-      <p class="text-blue-200 mt-1 text-sm">City University Digital Hub</p>
+      <p class="text-muted mt-1 text-sm">City University Digital Hub</p>
     </div>
 
     <!-- Card -->
-    <div class="bg-white rounded-3xl shadow-2xl overflow-hidden">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
       <!-- Tabs -->
       <div class="flex border-b border-slate-100">
         <button id="tab-login" onclick="switchTab('login')"
@@ -160,8 +157,8 @@
     </div>
 
     <!-- Demo credentials hint -->
-    <div class="mt-4 bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-4 text-white/80 text-xs">
-      <div class="font-semibold mb-1 text-white">🔑 Demo credentials</div>
+    <div class="mt-6 bg-slate-50 border border-slate-200 rounded-xl p-4 text-muted text-xs">
+      <div class="font-semibold text-ink mb-1">🔑 Demo credentials</div>
       <div>Admin: <span class="font-mono">admin@campusos.test</span> / <span class="font-mono">Admin@12345</span></div>
       <div>Student: <span class="font-mono">student1@campusos.test</span> / <span class="font-mono">Student@12345</span></div>
     </div>
