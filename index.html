@@ -40,18 +40,6 @@
 
     <!-- Card -->
     <div class="bg-white rounded-3xl shadow-2xl overflow-hidden">
-      <!-- Tabs -->
-      <div class="flex border-b border-slate-100">
-        <button id="tab-login" onclick="switchTab('login')"
-          class="flex-1 py-4 text-sm font-bold text-brand-600 border-b-2 border-brand-600 transition-all" aria-selected="true">
-          Sign In
-        </button>
-        <button id="tab-signup" onclick="switchTab('signup')"
-          class="flex-1 py-4 text-sm font-bold text-muted border-b-2 border-transparent hover:text-ink transition-all" aria-selected="false">
-          Create Account
-        </button>
-      </div>
-
       <!-- Login form -->
       <div id="panel-login" class="p-8 animate-slide-up">
         <h2 class="text-2xl font-extrabold text-ink mb-1">Welcome back!</h2>
@@ -199,12 +187,8 @@
     window.switchTab = (tab) => {
       ['login','signup'].forEach(t => {
         document.getElementById(`panel-${t}`).classList.add('hidden');
-        document.getElementById(`tab-${t}`).classList.remove('text-brand-600','border-brand-600');
-        document.getElementById(`tab-${t}`).classList.add('text-muted','border-transparent');
       });
       document.getElementById(`panel-${tab}`).classList.remove('hidden');
-      document.getElementById(`tab-${tab}`).classList.add('text-brand-600','border-brand-600');
-      document.getElementById(`tab-${tab}`).classList.remove('text-muted','border-transparent');
     };
 
     window.togglePw = (inputId, eyeId) => {

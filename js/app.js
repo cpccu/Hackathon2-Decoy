@@ -165,7 +165,7 @@ export async function renderNavbar({ showModuleLinks = true } = {}) {
   target.innerHTML = `
     <nav class="bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex items-center justify-between h-16">
+        <div class="relative flex items-center justify-between h-16">
           <!-- Logo -->
           <a href="home.html" class="flex shrink-0 items-center">
             <img src="CityUniLogo.jpeg" alt="City University" class="h-16 w-40 object-contain">
@@ -174,7 +174,8 @@ export async function renderNavbar({ showModuleLinks = true } = {}) {
 
           <!-- Desktop links -->
           ${showModuleLinks ? `
-            <div class="hidden md:flex items-center gap-6 text-sm font-medium">
+            <div class="absolute left-1/2 hidden -translate-x-1/2 items-center gap-6 text-sm font-medium md:flex">
+              ${navLink('home.html',      'Home')}
               ${navLink('events.html',    'Events')}
               ${navLink('resources.html', 'Resources')}
               ${isAdmin ? navLink('scan.html', '📷 Scan') : ''}
@@ -214,6 +215,7 @@ export async function renderNavbar({ showModuleLinks = true } = {}) {
       <!-- Mobile menu -->
       <div id="mobile-menu" class="hidden md:hidden border-t border-slate-100 bg-white px-4 pb-4 pt-2 space-y-1">
         ${showModuleLinks ? `
+          <a href="home.html" class="block py-2 text-sm font-medium text-ink hover:text-brand-600">Home</a>
           <a href="events.html" class="block py-2 text-sm font-medium text-ink hover:text-brand-600">Events</a>
           <a href="resources.html" class="block py-2 text-sm font-medium text-ink hover:text-brand-600">Resources</a>
           ${isAdmin ? '<a href="scan.html" class="block py-2 text-sm font-medium text-ink hover:text-brand-600">📷 Scan</a>' : ''}

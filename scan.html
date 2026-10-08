@@ -25,10 +25,10 @@
     #qr-reader__scan_region { border-radius: 16px !important; }
   </style>
 </head>
-<body class="bg-surface text-ink min-h-screen">
+<body class="flex min-h-screen flex-col bg-surface text-ink">
   <div id="navbar"></div>
 
-  <main class="max-w-2xl mx-auto px-4 sm:px-6 py-8">
+  <main class="max-w-2xl mx-auto w-full flex-1 px-4 sm:px-6 py-8">
     <div class="mb-8">
       <h1 class="text-3xl font-extrabold text-ink">QR Check-in Scanner</h1>
       <p class="text-muted mt-1">Admin only · Scan passes to check students in</p>
@@ -94,6 +94,15 @@
       </div>
     </div>
   </main>
+
+  <footer class="mt-8 bg-[#00005A] py-12 text-white">
+    <div class="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-4 sm:px-6 md:flex-row lg:px-8">
+      <div class="inline-flex h-32 w-56 items-center justify-center overflow-hidden rounded-[50%] border-2 border-[#b42332] bg-white p-3 shadow-lg sm:h-36 sm:w-64 md:h-40 md:w-72">
+        <img src="CityUniLogo.jpeg" alt="City University" class="h-full w-full object-contain">
+      </div>
+      <p class="text-center text-sm text-slate-400">Built for City University (CPCCU Hackathon 2). Replace scattered chats with one platform.</p>
+    </div>
+  </footer>
 
   <div id="toast-root" class="fixed bottom-4 right-4 z-[200] max-w-sm w-full"></div>
 
