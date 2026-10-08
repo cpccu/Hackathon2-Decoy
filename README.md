@@ -52,13 +52,13 @@ Supabase (Postgres + Auth + Storage)
 | Backend | Supabase (Postgres, Auth, Storage) |
 | QR generate | qrcode.js CDN |
 | QR scan | html5-qrcode CDN |
-| Hosting | Netlify / Vercel / Cloudflare Pages |
+| Hosting | GitHub Pages |
 
 ---
 
 ## Live Demo
 
-🌐 **URL:** *(deploy and fill in)*  
+🌐 **URL:** https://cpccu.github.io/Hackathon2-Decoy/
 🎬 **Demo video:** *(link here)*
 
 ---
@@ -110,7 +110,7 @@ npx serve .
 
 ### 1 — Rafi finds his Algorithms midterm
 *Rafi is CSE semester 5. He needs last year's midterm paper.*
-1. Opens `resources.html`, sets Department → **CSE**, Semester → **5**, Course → **CSE 301 Algorithms**
+1. Opens `resources.html`, sets Department → **CSE**, Semester → **3**, Course → **CSE 301 Algorithms**
 2. Sees the list instantly. Searches `midterm`.
 3. Clicks **Download** — gets a signed, short-lived URL. Done in 10 seconds.
 
@@ -123,7 +123,7 @@ npx serve .
 
 ### 3 — Admin checks in at the door
 *Admin is standing at the Auditorium entrance with a laptop.*
-1. Opens `scan.html`, selects "Cultural Night 2025" from the event dropdown.
+1. Opens `scan.html`, selects "Cultural Night" from the event dropdown.
 2. Clicks **▶ Start** — camera activates.
 3. Nusrat shows her QR code → scanner beeps → **✅ Nusrat Jahan checked in!**
 4. Counter updates: **1 / 87 checked in**.
