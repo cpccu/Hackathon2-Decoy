@@ -190,9 +190,11 @@ export async function renderNavbar() {
                   <span class="font-medium text-ink max-w-[120px] truncate">${escapeHtml(profile.full_name || 'User')}</span>
                   <svg class="w-3 h-3 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                 </button>
-                <div class="absolute right-0 mt-2 w-44 bg-white border border-slate-200 rounded-xl shadow-lg py-1 hidden group-hover:block">
-                  <div class="px-4 py-2 text-xs text-muted border-b">${escapeHtml(profile.department || '')} ${isAdmin ? '· Admin' : ''}</div>
-                  <button id="logout-btn" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition">Sign out</button>
+                <div class="absolute right-0 top-full z-50 hidden pt-2 group-hover:block group-focus-within:block">
+                  <div class="w-44 bg-white border border-slate-200 rounded-xl shadow-lg py-1">
+                    <div class="px-4 py-2 text-xs text-muted border-b">${escapeHtml(profile.department || '')} ${isAdmin ? '· Admin' : ''}</div>
+                    <button id="logout-btn" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition">Sign out</button>
+                  </div>
                 </div>
               </div>
             ` : `
