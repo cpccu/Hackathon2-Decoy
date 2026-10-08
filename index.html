@@ -46,6 +46,13 @@
         <p class="text-muted text-sm mb-6">Sign in to your account.</p>
         <form id="login-form" class="space-y-4" novalidate>
           <div>
+            <label for="login-role" class="block text-xs font-semibold uppercase text-muted mb-1 tracking-wide">Account type</label>
+            <select id="login-role" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm bg-white">
+              <option value="student">Student</option>
+              <option value="admin">Admin / Teacher</option>
+            </select>
+          </div>
+          <div>
             <label for="login-email" class="block text-xs font-semibold uppercase text-muted mb-1 tracking-wide">Email</label>
             <input id="login-email" type="email" placeholder="you@cityuniversity.edu.bd" autocomplete="email"
               class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition text-sm">
@@ -80,15 +87,36 @@
         <form id="signup-form" class="space-y-4" novalidate>
           <div class="grid grid-cols-2 gap-3">
             <div class="col-span-2">
+              <label for="su-account-type" class="block text-xs font-semibold uppercase text-muted mb-1 tracking-wide">I am a</label>
+              <select id="su-account-type" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm bg-white">
+                <option value="student">Student</option>
+                <option value="admin">Teacher / Admin</option>
+              </select>
+            </div>
+            <div class="col-span-2">
               <label for="su-name" class="block text-xs font-semibold uppercase text-muted mb-1 tracking-wide">Full Name</label>
               <input id="su-name" type="text" placeholder="Rafi Ahmed" autocomplete="name"
                 class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 transition text-sm">
               <p id="su-name-err" class="text-red-500 text-xs mt-1 hidden"></p>
             </div>
-            <div>
+            <div id="su-admin-kind-group" class="col-span-2 hidden">
+              <label for="su-admin-kind" class="block text-xs font-semibold uppercase text-muted mb-1 tracking-wide">Admin account for</label>
+              <select id="su-admin-kind" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm bg-white">
+                <option value="teacher">Teacher / Faculty</option>
+                <option value="senior_student">Senior student</option>
+              </select>
+            </div>
+            <div id="su-student-id-group">
               <label for="su-sid" class="block text-xs font-semibold uppercase text-muted mb-1 tracking-wide">Student ID</label>
               <input id="su-sid" type="text" placeholder="CSE2201"
                 class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 transition text-sm">
+              <p id="su-sid-err" class="text-red-500 text-xs mt-1 hidden"></p>
+            </div>
+            <div id="su-staff-id-group" class="hidden">
+              <label for="su-staff-id" class="block text-xs font-semibold uppercase text-muted mb-1 tracking-wide">Teacher / Admin ID</label>
+              <input id="su-staff-id" type="text" placeholder="Faculty ID"
+                class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 transition text-sm">
+              <p id="su-staff-id-err" class="text-red-500 text-xs mt-1 hidden"></p>
             </div>
             <div>
               <label for="su-dept" class="block text-xs font-semibold uppercase text-muted mb-1 tracking-wide">Department</label>
@@ -97,6 +125,12 @@
                 <option value="">Loading…</option>
               </select>
               <p id="su-dept-err" class="text-red-500 text-xs mt-1 hidden"></p>
+            </div>
+            <div id="su-admin-invite-group" class="col-span-2 hidden">
+              <label for="su-admin-invite" class="block text-xs font-semibold uppercase text-muted mb-1 tracking-wide">Faculty / Admin invite pass</label>
+              <input id="su-admin-invite" type="text" autocomplete="off" placeholder="Enter your one-time invite pass"
+                class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 transition text-sm">
+              <p class="text-xs text-muted mt-1">Ask a current admin for a pass. Senior students also need a pass; there is no verification bypass.</p>
             </div>
           </div>
           <div>
@@ -185,7 +219,7 @@
     });
 
     window.switchTab = (tab) => {
-      ['login','signup'].forEach(t => {
+      ['login','signup','confirm'].forEach(t => {
         document.getElementById(`panel-${t}`).classList.add('hidden');
       });
       document.getElementById(`panel-${tab}`).classList.remove('hidden');
@@ -219,6 +253,7 @@
       e.preventDefault();
       const email = document.getElementById('login-email').value.trim();
       const password = document.getElementById('login-password').value;
+      const requestedRole = document.getElementById('login-role').value;
 
       let valid = true;
       showErr('login-email-err', ''); showErr('login-password-err', ''); showErr('login-error', '');
@@ -228,7 +263,7 @@
 
       setLoading(loginBtn, true);
       try {
-        await signIn(email, password);
+        await signIn(email, password, requestedRole);
         toast('Welcome back! 🎉', 'success');
         const next = getNextPage();
         setTimeout(() => location.href = next, 800);
@@ -249,16 +284,29 @@
       e.preventDefault();
       const full_name  = document.getElementById('su-name').value.trim();
       const student_id = document.getElementById('su-sid').value.trim();
+      const staff_id   = document.getElementById('su-staff-id').value.trim();
       const department = document.getElementById('su-dept').value;
+      const requested_role = document.getElementById('su-account-type').value;
+      const admin_kind = requested_role === 'admin' ? document.getElementById('su-admin-kind').value : '';
+      const admin_invite_code = document.getElementById('su-admin-invite').value.trim();
       const email      = document.getElementById('su-email').value.trim();
       const password   = document.getElementById('su-password').value;
       const confirm    = document.getElementById('su-confirm').value;
 
       let valid = true;
-      ['su-name-err','su-dept-err','su-email-err','su-password-err','su-confirm-err','signup-error'].forEach(id => showErr(id, ''));
+      ['su-name-err','su-sid-err','su-staff-id-err','su-dept-err','su-email-err','su-password-err','su-confirm-err','signup-error'].forEach(id => showErr(id, ''));
 
       if (!full_name)              { showErr('su-name-err', 'Full name is required'); valid = false; }
+      if ((requested_role === 'student' || admin_kind === 'senior_student') && !student_id) {
+        showErr('su-sid-err', 'Student ID is required'); valid = false;
+      }
+      if (requested_role === 'admin' && admin_kind === 'teacher' && !staff_id) {
+        showErr('su-staff-id-err', 'Teacher / Admin ID is required'); valid = false;
+      }
       if (!department)             { showErr('su-dept-err', 'Select your department'); valid = false; }
+      if (requested_role === 'admin' && !admin_invite_code) {
+        showErr('signup-error', 'An invite pass from a current admin is required for admin accounts'); valid = false;
+      }
       if (!email)                  { showErr('su-email-err', 'Email is required'); valid = false; }
       if (password.length < 8)     { showErr('su-password-err', 'Password must be at least 8 characters'); valid = false; }
       if (password !== confirm)    { showErr('su-confirm-err', 'Passwords do not match'); valid = false; }
@@ -266,7 +314,17 @@
 
       setLoading(signupBtn, true);
       try {
-        const { needsConfirmation } = await signUp({ email, password, full_name, student_id, department });
+        const { needsConfirmation } = await signUp({
+          email,
+          password,
+          full_name,
+          student_id: requested_role === 'student' || admin_kind === 'senior_student' ? student_id : '',
+          staff_id: admin_kind === 'teacher' ? staff_id : '',
+          department,
+          requested_role,
+          admin_kind,
+          admin_invite_code,
+        });
         if (needsConfirmation) {
           ['login','signup'].forEach(t => document.getElementById(`panel-${t}`).classList.add('hidden'));
           document.getElementById('panel-confirm').classList.remove('hidden');
@@ -282,6 +340,20 @@
         signupBtn.innerHTML = signupBtn.dataset.label;
       }
     });
+
+    const accountTypeSelect = document.getElementById('su-account-type');
+    const adminKindSelect = document.getElementById('su-admin-kind');
+    function updateSignupFields() {
+      const isAdmin = accountTypeSelect.value === 'admin';
+      const isSeniorStudent = isAdmin && adminKindSelect.value === 'senior_student';
+      document.getElementById('su-admin-kind-group').classList.toggle('hidden', !isAdmin);
+      document.getElementById('su-admin-invite-group').classList.toggle('hidden', !isAdmin);
+      document.getElementById('su-student-id-group').classList.toggle('hidden', isAdmin && !isSeniorStudent);
+      document.getElementById('su-staff-id-group').classList.toggle('hidden', !isAdmin || isSeniorStudent);
+    }
+    accountTypeSelect.addEventListener('change', updateSignupFields);
+    adminKindSelect.addEventListener('change', updateSignupFields);
+    updateSignupFields();
   </script>
 </body>
 </html>

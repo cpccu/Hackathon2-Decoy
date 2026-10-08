@@ -185,6 +185,7 @@ export async function renderNavbar({ showModuleLinks = true } = {}) {
               ${navLink('home.html',      'Home')}
               ${navLink('events.html',    'Events')}
               ${navLink('resources.html', 'Resources')}
+              ${isAdmin ? navLink('admin.html', 'Admin') : ''}
               ${isAdmin ? navLink('scan.html', '📷 Scan') : ''}
             </div>
           ` : ''}
@@ -225,6 +226,7 @@ export async function renderNavbar({ showModuleLinks = true } = {}) {
           <a href="home.html" class="block py-2 text-sm font-medium text-ink hover:text-brand-600">Home</a>
           <a href="events.html" class="block py-2 text-sm font-medium text-ink hover:text-brand-600">Events</a>
           <a href="resources.html" class="block py-2 text-sm font-medium text-ink hover:text-brand-600">Resources</a>
+          ${isAdmin ? '<a href="admin.html" class="block py-2 text-sm font-medium text-ink hover:text-brand-600">Admin</a>' : ''}
           ${isAdmin ? '<a href="scan.html" class="block py-2 text-sm font-medium text-ink hover:text-brand-600">📷 Scan</a>' : ''}
         ` : ''}
         ${profile

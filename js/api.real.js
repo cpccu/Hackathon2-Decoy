@@ -8,6 +8,11 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const DEMO_RESOURCE_PATHS = new Set([
+  'demo-resources/cse-101-programming-basics.txt',
+  'demo-resources/cse-301-algorithms-practice.txt',
+  'demo-resources/eee-101-circuit-formulas.txt',
+]);
 
 async function getAuthUser() {
   const { data: { user }, error } = await supabase.auth.getUser();
@@ -16,10 +21,18 @@ async function getAuthUser() {
 }
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
-export async function signUp({ email, password, full_name, student_id, department }) {
+export async function signUp({
+  email, password, full_name, student_id, staff_id, department,
+  requested_role, admin_kind, admin_invite_code,
+}) {
   const { data, error } = await supabase.auth.signUp({
     email, password,
-    options: { data: { full_name, student_id, department } },
+    options: {
+      data: {
+        full_name, student_id, staff_id, department,
+        requested_role, admin_kind, admin_invite_code,
+      },
+    },
   });
   if (error) throw new Error(error.message);
   const user = data.user;
@@ -27,10 +40,38 @@ export async function signUp({ email, password, full_name, student_id, departmen
   return { user, needsConfirmation };
 }
 
-export async function signIn(email, password) {
+export async function signIn(email, password, requestedRole) {
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) throw new Error(error.message);
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', data.user.id)
+    .single();
+  if (profileError) {
+    const { error: signOutError } = await supabase.auth.signOut();
+    if (signOutError) {
+      throw new Error(`${profileError.message} Session cleanup failed: ${signOutError.message}`);
+    }
+    throw new Error(profileError.message);
+  }
+  if (profile.role !== requestedRole) {
+    const accountType = profile.role === 'admin' ? 'Admin / Teacher' : 'Student';
+    const message = `This account is registered as ${accountType}. Choose ${accountType} to sign in.`;
+    const { error: signOutError } = await supabase.auth.signOut();
+    if (signOutError) throw new Error(`${message} Session cleanup failed: ${signOutError.message}`);
+    throw new Error(message);
+  }
   return { user: data.user };
+}
+
+export async function createAdminInvite(clubIds = [], superAdmin = false) {
+  const { data, error } = await supabase.rpc('create_admin_invite', {
+    p_club_ids: clubIds,
+    p_super_admin: superAdmin,
+  });
+  if (error) throw new Error(error.message);
+  return data;
 }
 
 export async function signOut() {
@@ -59,6 +100,26 @@ export async function listClubs() {
   return data;
 }
 
+export async function getManagedClubIds() {
+  const user = await getAuthUser();
+  if (!user) throw new Error('Not authenticated');
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('role, is_super_admin')
+    .eq('id', user.id)
+    .single();
+  if (profileError) throw new Error(profileError.message);
+  if (profile.role !== 'admin') throw new Error('Admin access required');
+  if (profile.is_super_admin) return (await listClubs()).map(club => club.id);
+
+  const { data, error } = await supabase
+    .from('admin_clubs')
+    .select('club_id')
+    .eq('admin_id', user.id);
+  if (error) throw new Error(error.message);
+  return data.map(assignment => assignment.club_id);
+}
+
 export async function listEvents({ search = '', clubId = '', type = '', range = 'all' } = {}) {
   const now = new Date().toISOString();
   let q = supabase.from('events').select('*, clubs(name)').order('starts_at');
@@ -83,11 +144,21 @@ export async function getEvent(id) {
   const { data, error } = await supabase.from('events').select('*, clubs(name)').eq('id', id).maybeSingle();
   if (error) throw new Error(error.message);
   if (!data) return null;
-  return { ...data, club_name: data.clubs?.name || '' };
+  const { data: department, error: departmentError } = data.department_id
+    ? await supabase.from('departments').select('name').eq('id', data.department_id).single()
+    : { data: null, error: null };
+  if (departmentError) throw new Error(departmentError.message);
+  return { ...data, club_name: data.clubs?.name || '', department_name: department?.name || '' };
 }
 
 export async function createEvent(data) {
   const { data: ev, error } = await supabase.from('events').insert(data).select('*, clubs(name)').single();
+  if (error) throw new Error(error.message);
+  return { ...ev, club_name: ev.clubs?.name || '' };
+}
+
+export async function updateEvent(id, data) {
+  const { data: ev, error } = await supabase.from('events').update(data).eq('id', id).select('*, clubs(name)').single();
   if (error) throw new Error(error.message);
   return { ...ev, club_name: ev.clubs?.name || '' };
 }
@@ -103,6 +174,20 @@ export async function getRsvpCounts() {
   const counts = {};
   for (const row of data) counts[row.event_id] = Number(row.going);
   return counts;
+}
+
+export async function getEventRegistrants(eventId) {
+  const { data, error } = await supabase
+    .from('rsvps')
+    .select('id, checked_in_at, created_at, profiles(full_name, student_id)')
+    .eq('event_id', eventId)
+    .order('created_at');
+  if (error) throw new Error(error.message);
+  return data.map(rsvp => ({
+    ...rsvp,
+    full_name: rsvp.profiles?.full_name || 'Unknown student',
+    student_id: rsvp.profiles?.student_id || '',
+  }));
 }
 
 export async function getMyRsvps() {
@@ -182,7 +267,7 @@ export async function listResources({ search = '', departmentId = '', semester =
 
   const buildQuery = () => {
     let q = supabase.from('resources')
-      .select('*, courses(code,title,department_id,semester), profiles(full_name)')
+      .select('*, courses(code,title,department_id,semester,departments(name)), profiles!resources_uploaded_by_fkey(full_name)')
       .order('created_at', { ascending: false });
     if (courseId) q = q.eq('course_id', courseId);
     else if (courseIds) q = q.in('course_id', courseIds);
@@ -212,6 +297,7 @@ export async function listResources({ search = '', departmentId = '', semester =
     ...r,
     course_code:   r.courses?.code  || '',
     course_title:  r.courses?.title || '',
+    course_department: r.courses?.departments?.name || '',
     uploader_name: r.profiles?.full_name || 'Unknown',
   }));
 }
@@ -230,7 +316,7 @@ export async function uploadResource({ file, title, courseId, kind, tags, onProg
 
   const { data, error: dbErr } = await supabase.from('resources').insert({
     course_id: courseId, title, kind, tags: tags || [], file_path: path, file_name: file.name, uploaded_by: user.id,
-  }).select('*, courses(code,title), profiles(full_name)').single();
+  }).select('*, courses(code,title,departments(name)), profiles!resources_uploaded_by_fkey(full_name)').single();
 
   if (dbErr) {
     const { error: rollbackErr } = await supabase.storage.from('resources').remove([path]);
@@ -239,7 +325,21 @@ export async function uploadResource({ file, title, courseId, kind, tags, onProg
     }
     throw new Error(dbErr.message);
   }
-  return { ...data, course_code: data.courses?.code || '', course_title: data.courses?.title || '', uploader_name: data.profiles?.full_name || '' };
+  return {
+    ...data,
+    course_code: data.courses?.code || '',
+    course_title: data.courses?.title || '',
+    course_department: data.courses?.departments?.name || '',
+    uploader_name: data.profiles?.full_name || '',
+  };
+}
+
+export async function reviewResource(id, status) {
+  const { error } = await supabase.rpc('review_resource', {
+    p_resource_id: id,
+    p_status: status,
+  });
+  if (error) throw new Error(error.message);
 }
 
 export async function deleteResource(id) {
@@ -247,6 +347,7 @@ export async function deleteResource(id) {
   if (fetchErr) throw new Error(fetchErr.message);
   const { error } = await supabase.from('resources').delete().eq('id', id);
   if (error) throw new Error(error.message);
+  if (DEMO_RESOURCE_PATHS.has(data.file_path)) return;
   const { error: storageErr } = await supabase.storage.from('resources').remove([data.file_path]);
   if (storageErr) {
     throw new Error(`Resource record was deleted, but its file cleanup failed: ${storageErr.message}`);
@@ -254,6 +355,9 @@ export async function deleteResource(id) {
 }
 
 export async function getDownloadUrl(filePath, fileName) {
+  if (DEMO_RESOURCE_PATHS.has(filePath)) {
+    return new URL(`../${filePath}`, import.meta.url).href;
+  }
   const { data, error } = await supabase.storage.from('resources').createSignedUrl(filePath, 60, { download: fileName || true });
   if (error) throw new Error(error.message);
   return data.signedUrl;

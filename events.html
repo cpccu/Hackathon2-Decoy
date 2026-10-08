@@ -89,7 +89,7 @@
       <div class="inline-flex h-32 w-56 items-center justify-center overflow-hidden rounded-[50%] border-2 border-[#b42332] bg-white p-3 shadow-lg sm:h-36 sm:w-64 md:h-40 md:w-72">
         <img src="CityUniLogo.jpeg" alt="City University" class="h-full w-full object-contain">
       </div>
-      <p class="text-center text-sm text-slate-400">Built for City University (CPCCU Hackathon 2). Replace scattered chats with one platform.</p>
+      <p class="text-center text-sm text-slate-400">Built for City University (CPCCU Hackathon 2)</p>
     </div>
   </footer>
 
@@ -98,12 +98,12 @@
 
   <script type="module">
     import { renderNavbar, requireAuth, toast, skeletonCards, emptyState, escapeHtml, formatDateTime, debounce, openModal, closeModal } from './js/app.js';
-    import { listClubs, listEvents, getRsvpCounts, getMyRsvps, createEvent, deleteEvent, getProfile } from './js/api.js';
+    import { listClubs, listDepartments, getManagedClubIds, listEvents, getRsvpCounts, getMyRsvps, createEvent, updateEvent, deleteEvent, getProfile } from './js/api.js';
 
     // Make closeModal globally accessible for inline onclick handlers
     window.AppModule = { closeModal };
 
-    let _profile = null, _clubs = [], _rsvpIds = new Set(), _counts = {}, _filters = { search:'', clubId:'', type:'', range:'upcoming' };
+    let _profile = null, _clubs = [], _departments = [], _managedClubIds = new Set(), _rsvpIds = new Set(), _counts = {}, _eventsById = new Map(), _filters = { search:'', clubId:'', type:'', range:'upcoming' };
 
     async function init() {
       renderNavbar();
@@ -111,6 +111,7 @@
 
       _profile = await getProfile();
       const isAdmin = _profile?.role === 'admin';
+      if (isAdmin) _managedClubIds = new Set(await getManagedClubIds());
 
       if (isAdmin) {
         const btn = document.getElementById('new-event-btn');
@@ -118,14 +119,25 @@
         btn.addEventListener('click', openCreateModal);
       }
 
-      [_clubs, _counts] = await Promise.all([listClubs(), getRsvpCounts()]);
+      [_clubs, _departments, _counts] = await Promise.all([listClubs(), listDepartments(), getRsvpCounts()]);
 
       const clubSel = document.getElementById('filter-club');
       clubSel.innerHTML = '<option value="">All Clubs</option>' +
         _clubs.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
 
-      const myRsvps = await getMyRsvps();
-      _rsvpIds = new Set(myRsvps.map(r => r.event_id));
+      if (!isAdmin) {
+        const myRsvps = await getMyRsvps();
+        _rsvpIds = new Set(myRsvps.map(r => r.event_id));
+      }
+
+      document.getElementById('events-grid').addEventListener('click', e => {
+        const button = e.target.closest('button[data-event-action]');
+        if (!button) return;
+        const event = _eventsById.get(button.dataset.eventId);
+        if (!event) return;
+        if (button.dataset.eventAction === 'edit') openEditModal(event);
+        if (button.dataset.eventAction === 'delete') handleDelete(event.id, event.title);
+      });
 
       document.getElementById('search-input').addEventListener('input', debounce(e => { _filters.search = e.target.value; loadEvents(); }, 300));
       document.getElementById('filter-club').addEventListener('change', e => { _filters.clubId = e.target.value; loadEvents(); });
@@ -161,6 +173,7 @@
     function renderEvents(events) {
       const grid    = document.getElementById('events-grid');
       const isAdmin = _profile?.role === 'admin';
+      _eventsById = new Map(events.map(event => [event.id, event]));
 
       if (!events.length) {
         grid.innerHTML = emptyState({ icon:'📅', title:'No events found', text:'Try adjusting your filters, or check back soon.' });
@@ -203,9 +216,13 @@
                 <a href="event.html?id=${ev.id}" class="flex-1 text-center bg-brand-600 text-white text-sm font-semibold py-2 rounded-lg hover:bg-brand-700 transition">
                   ${rsvped ? 'View Pass' : isPast ? 'View Details' : 'See Details'}
                 </a>
-                ${isAdmin ? `
-                  <button onclick="handleDelete('${ev.id}','${escapeHtml(ev.title).replace(/'/g,"\\'")}',this)"
-                    class="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition" title="Delete event">
+                ${isAdmin && (_profile.is_super_admin || _managedClubIds.has(ev.club_id)) ? `
+                  <button data-event-action="edit" data-event-id="${escapeHtml(ev.id)}"
+                    class="p-2 text-brand-600 hover:text-brand-800 hover:bg-brand-50 rounded-lg transition" title="Edit event" aria-label="Edit ${escapeHtml(ev.title)}">
+                    ✏️
+                  </button>
+                  <button data-event-action="delete" data-event-id="${escapeHtml(ev.id)}"
+                    class="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition" title="Delete event" aria-label="Delete ${escapeHtml(ev.title)}">
                     🗑️
                   </button>` : ''}
               </div>
@@ -215,59 +232,84 @@
     }
 
     function openCreateModal() {
-      const clubOptions = _clubs.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
+      openEventModal();
+    }
+
+    function openEditModal(event) {
+      openEventModal(event);
+    }
+
+    function openEventModal(event = null) {
+      const isEditing = Boolean(event);
+      const clubOptions = _clubs
+        .filter(club => _profile?.is_super_admin || _managedClubIds.has(club.id))
+        .map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
+      const departmentOptions = _departments
+        .filter(department => _profile?.is_super_admin || department.name === _profile?.department)
+        .map(department => `<option value="${department.id}" ${event?.department_id === department.id || (!event && department.name === _profile?.department) ? 'selected' : ''}>${escapeHtml(department.name)}</option>`)
+        .join('');
+      const localStartsAt = event
+        ? new Date(new Date(event.starts_at).getTime() - new Date(event.starts_at).getTimezoneOffset() * 60000).toISOString().slice(0, 16)
+        : '';
       openModal(`
         <div class="p-6">
-          <h2 class="text-xl font-bold text-ink mb-5">Create New Event</h2>
-          <form id="create-event-form" class="space-y-4" novalidate>
-            <div>
+          <h2 class="text-xl font-bold text-ink mb-5">${isEditing ? 'Edit Event' : 'Create New Event'}</h2>
+          <form id="event-form" class="space-y-4" novalidate>
+            ${isEditing ? '' : `<div>
               <label class="block text-xs font-semibold uppercase text-muted mb-1">Club *</label>
               <select id="ce-club" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm bg-white" required>
                 <option value="">Select a club</option>${clubOptions}
               </select>
+            </div>`}
+            <div>
+              <label class="block text-xs font-semibold uppercase text-muted mb-1">Department *</label>
+              <select id="ce-department" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm bg-white" required>
+                <option value="">Select a department</option>${departmentOptions}
+              </select>
             </div>
             <div>
               <label class="block text-xs font-semibold uppercase text-muted mb-1">Title *</label>
-              <input id="ce-title" type="text" placeholder="Event title" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm" required>
+              <input id="ce-title" type="text" placeholder="Event title" value="${escapeHtml(event?.title || '')}" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm" required>
             </div>
             <div>
               <label class="block text-xs font-semibold uppercase text-muted mb-1">Description</label>
-              <textarea id="ce-desc" rows="3" placeholder="What's this event about?" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm resize-none"></textarea>
+              <textarea id="ce-desc" rows="3" placeholder="What's this event about?" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm resize-none">${escapeHtml(event?.description || '')}</textarea>
             </div>
             <div class="grid grid-cols-2 gap-3">
               <div>
                 <label class="block text-xs font-semibold uppercase text-muted mb-1">Type</label>
                 <select id="ce-type" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm bg-white">
-                  ${['workshop','seminar','competition','cultural','sports','social','general'].map(t=>`<option value="${t}">${t.charAt(0).toUpperCase()+t.slice(1)}</option>`).join('')}
+                  ${['workshop','seminar','competition','cultural','sports','social','general'].map(t=>`<option value="${t}" ${event?.type === t ? 'selected' : ''}>${t.charAt(0).toUpperCase()+t.slice(1)}</option>`).join('')}
                 </select>
               </div>
               <div>
                 <label class="block text-xs font-semibold uppercase text-muted mb-1">Capacity</label>
-                <input id="ce-capacity" type="number" min="1" placeholder="Unlimited if blank" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
+                <input id="ce-capacity" type="number" min="1" placeholder="Unlimited if blank" value="${event?.capacity ?? ''}" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
               </div>
             </div>
             <div class="grid grid-cols-2 gap-3">
               <div>
                 <label class="block text-xs font-semibold uppercase text-muted mb-1">Date &amp; Time *</label>
-                <input id="ce-datetime" type="datetime-local" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm" required>
+                <input id="ce-datetime" type="datetime-local" value="${localStartsAt}" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm" required>
               </div>
               <div>
                 <label class="block text-xs font-semibold uppercase text-muted mb-1">Venue *</label>
-                <input id="ce-venue" type="text" placeholder="e.g. Auditorium" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm" required>
+                <input id="ce-venue" type="text" placeholder="e.g. Auditorium" value="${escapeHtml(event?.venue || '')}" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm" required>
               </div>
             </div>
             <p id="ce-error" class="text-red-500 text-xs bg-red-50 rounded-lg p-2 hidden"></p>
             <div class="flex gap-3 pt-2">
               <button type="button" id="ce-cancel" class="flex-1 border border-slate-200 text-ink font-semibold py-2.5 rounded-xl hover:bg-slate-50 transition text-sm">Cancel</button>
-              <button id="ce-submit" type="submit" class="flex-1 bg-brand-600 text-white font-bold py-2.5 rounded-xl hover:bg-brand-700 transition text-sm">Create Event</button>
+              <button id="ce-submit" type="submit" class="flex-1 bg-brand-600 text-white font-bold py-2.5 rounded-xl hover:bg-brand-700 transition text-sm">${isEditing ? 'Save Changes' : 'Create Event'}</button>
             </div>
           </form>
         </div>`);
 
       document.getElementById('ce-cancel').addEventListener('click', closeModal);
-      document.getElementById('create-event-form').addEventListener('submit', async e => {
+      document.getElementById('event-form').addEventListener('submit', async e => {
         e.preventDefault();
-        const club_id     = document.getElementById('ce-club').value;
+        const club_id     = isEditing ? event.club_id : document.getElementById('ce-club').value;
+        const department_id = document.getElementById('ce-department').value;
         const title       = document.getElementById('ce-title').value.trim();
         const description = document.getElementById('ce-desc').value.trim();
         const type        = document.getElementById('ce-type').value;
@@ -277,23 +319,31 @@
         const errEl       = document.getElementById('ce-error');
         errEl.classList.add('hidden');
 
-        if (!club_id || !title || !starts_at || !venue) {
-          errEl.textContent = 'Please fill in all required fields.';
+        if (!club_id || !department_id || !title || !starts_at || !venue) {
+          errEl.textContent = 'Please fill in all required fields, including the department.';
+          errEl.classList.remove('hidden');
+          return;
+        }
+        if (isEditing && cap && Number(cap) < (_counts[event.id] || 0)) {
+          errEl.textContent = 'Capacity cannot be lower than the number of registered students.';
           errEl.classList.remove('hidden');
           return;
         }
         const btn = document.getElementById('ce-submit');
-        btn.disabled = true; btn.textContent = 'Creating…';
+        btn.disabled = true; btn.textContent = isEditing ? 'Saving…' : 'Creating…';
         try {
-          const ev = await createEvent({ club_id, title, description, type, starts_at: new Date(starts_at).toISOString(), venue, capacity: cap ? parseInt(cap) : null });
+          const data = { department_id, title, description, type, starts_at: new Date(starts_at).toISOString(), venue, capacity: cap ? parseInt(cap, 10) : null };
+          const ev = isEditing
+            ? await updateEvent(event.id, data)
+            : await createEvent({ club_id, ...data });
           closeModal();
-          toast('Event created! 🎉', 'success');
-          _counts[ev.id] = 0;
+          toast(isEditing ? 'Event updated.' : 'Event created! 🎉', 'success');
+          if (!isEditing) _counts[ev.id] = 0;
           loadEvents();
         } catch (err) {
           errEl.textContent = err.message;
           errEl.classList.remove('hidden');
-          btn.disabled = false; btn.textContent = 'Create Event';
+          btn.disabled = false; btn.textContent = isEditing ? 'Save Changes' : 'Create Event';
         }
       });
     }

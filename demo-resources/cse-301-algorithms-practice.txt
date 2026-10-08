@@ -1,0 +1,15 @@
+City University - CSE 301
+DEMO RESOURCE - Algorithms Practice Questions
+
+1. Trace binary search on [3, 8, 12, 17, 25, 31] when searching for 17.
+2. Give the worst-case time complexity of insertion sort and explain why.
+3. Use breadth-first search to find the shortest path in an unweighted graph.
+4. State the invariant maintained by merge sort while merging two sorted lists.
+5. Compare an adjacency list and adjacency matrix for a sparse graph.
+
+Reminder:
+- Binary search requires sorted input and runs in O(log n) time.
+- Merge sort runs in O(n log n) time and uses additional space.
+- BFS uses a queue and visits each vertex and edge at most once.
+
+These are original demo prompts, not an exam or official course material.

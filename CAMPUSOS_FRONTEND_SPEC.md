@@ -2,6 +2,8 @@
 
 > **Your role:** You are the **frontend engineer only**. A teammate is building the backend (Supabase database, Auth, RLS, Storage, seed data) on a separate branch and PC. **Do not create or edit anything in `/sql` or `docs/BACKEND.md`.** Build every page against the **Backend Contract in Section 3**, which is the agreed interface between the two of us. Read this whole file first, then build. Where something is unspecified, decide sensibly and record the assumption in `docs/FRONTEND.md`.
 
+> **Implementation update (October 2026):** The entry page now distinguishes student and admin logins, and admin/teacher accounts require a one-time pass with club-specific permissions. The current app files and `docs/FRONTEND.md` are authoritative over the original role assumptions below.
+
 ---
 
 ## 0. Project Summary
@@ -77,7 +79,7 @@ The backend teammate is implementing exactly this. Code against it literally: na
 
 | Table | Columns |
 |---|---|
-| `profiles` | `id`, `full_name`, `student_id`, `department`, `role` (`'student'` or `'admin'`), `created_at` |
+| `profiles` | `id`, `full_name`, `student_id`, `staff_id`, `department`, `role` (`'student'` or `'admin'`), `is_super_admin`, `created_at` |
 | `clubs` | `id`, `name`, `description` |
 | `events` | `id`, `club_id`, `title`, `description`, `type`, `starts_at`, `venue`, `capacity` (nullable), `created_by`, `created_at` |
 | `rsvps` | `id` (uuid, **this is what the QR code encodes**), `event_id`, `user_id`, `checked_in_at` (nullable), `created_at`; unique `(event_id, user_id)` |
@@ -89,8 +91,8 @@ The backend teammate is implementing exactly this. Code against it literally: na
 
 ### 3.3 Permissions the UI should respect (enforced server-side by RLS)
 - All reads require a logged-in user.
-- **Admin only:** insert, update, delete on `events`; call `check_in_rsvp`.
-- Students: insert and delete **their own** `rsvps` (delete blocked after check-in); insert and delete **their own** `resources`; admins may delete any resource.
+- Admins can manage events and check-in only for assigned clubs; faculty/root admins manage all clubs.
+- Students can insert and delete **their own** `rsvps` (delete blocked after check-in); users can delete their own resources; faculty/root admins can delete any resource. Admins cannot register.
 - There is **no** direct UPDATE on `rsvps`. Check-in happens only through the RPC.
 - `profiles.role` cannot be changed by the client.
 
@@ -189,8 +191,11 @@ The site entry page. Shows the login and signup tabs. After authentication, user
 Requires an authenticated session. Shows the CampusOS introduction and the Events and Resources cards, which link directly to those modules.
 
 ### 6.3 Authentication behavior
-Centered card, Login / Signup tabs.
-- Signup fields: full name, student ID, department (select from `listDepartments()`), email, password (min 8), confirm password.
+Centered card, Login / Signup panels.
+- Login asks for Student or Admin/Teacher and checks the choice against the account's server-side role.
+- Signup asks for Student or Teacher/Admin. Student accounts collect a student ID; teacher accounts collect a staff ID; senior-student admins collect a student ID. All admin signups require a one-time invite pass.
+- Admin invitation creation is available to current admins at `admin.html`. Club admins may invite admins for clubs they manage; only faculty/root admins may issue full-access invitations.
+- Other signup fields: full name, department (select from `listDepartments()`), email, password (min 8), confirm password.
 - Inline validation, disabled button + spinner while loading, clear error messages (wrong password, email taken).
 - On success redirect to `?next=` or `home.html`. If `needsConfirmation`, show a "check your email" panel.
 - If already logged in, redirect away.
@@ -198,13 +203,15 @@ Centered card, Login / Signup tabs.
 ### 6.3 `events.html` (Feed)
 Requires auth.
 - Search box (title), filters **Club**, **Type**, tabs **Upcoming | This week | Past**.
-- Cards: date badge, title, club, venue, "N going", and an amber **Registered** chip if the user has an RSVP.
+- Cards: date badge, title, club, department, venue, "N going", and an amber **Registered** chip if the user has an RSVP. Students see all events; admins see events for their profile department; faculty/root sees all.
 - Skeletons while loading, friendly empty state, responsive grid (1 column on mobile, 2 on `md`, 3 on `lg`).
-- **Admin only:** "+ New Event" button opens a modal form (club, title, description, type, date/time, venue, capacity optional) with validation. Admins also see a delete button on cards with a confirm modal.
+- **Admin only:** "+ New Event" button opens a modal form (club, department, title, description, type, date/time, venue, capacity optional) with validation. Admins assigned to an event's club and department also see edit and delete controls on cards. Editing can change event details, department, and schedule but cannot move the event to another club.
 
 ### 6.4 `event.html?id=...` (Detail)
 - Banner with title + club, info rows (date/time, venue, host club, seats left or "Unlimited"), description.
 - Sticky bottom-on-mobile **RSVP** button. After RSVP it becomes **View my pass**, plus a **Cancel RSVP** link (hidden once checked in).
+- Only students can register. No admin account has RSVP controls. Admins assigned to the event's club see the attendee list with names and student IDs populated from their signup profiles instead of RSVP controls.
+- Student resource uploads remain pending until an admin for that course department approves them.
 - Handle "Event is full" and duplicate gracefully. Show a "Full" state if no seats are left. Disable RSVP for past events.
 - **Pass modal:** QR code encoding **only the RSVP uuid**, event name, student name, student ID, and a status chip (**Valid** / **Checked in**). Include a "Download pass (PNG)" button.
 - Invalid or missing `id` shows a not-found state.
