@@ -182,20 +182,14 @@ export async function renderNavbar() {
           <!-- Auth area -->
           <div class="flex items-center gap-3">
             ${profile ? `
-              <div class="relative group hidden md:block">
-                <button class="flex items-center gap-2 bg-surface border border-slate-200 rounded-full px-3 py-1.5 text-sm hover:shadow-sm transition" id="avatar-btn">
+              <div class="hidden md:flex items-center gap-3">
+                <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-full px-3 py-1.5 text-sm">
                   <span class="w-7 h-7 rounded-full bg-brand-600 text-white flex items-center justify-center text-xs font-bold">
                     ${escapeHtml(profile.full_name?.[0]?.toUpperCase() || 'U')}
                   </span>
                   <span class="font-medium text-ink max-w-[120px] truncate">${escapeHtml(profile.full_name || 'User')}</span>
-                  <svg class="w-3 h-3 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-                </button>
-                <div class="absolute right-0 top-full z-50 hidden pt-2 group-hover:block group-focus-within:block">
-                  <div class="w-44 bg-white border border-slate-200 rounded-xl shadow-lg py-1">
-                    <div class="px-4 py-2 text-xs text-muted border-b">${escapeHtml(profile.department || '')} ${isAdmin ? '· Admin' : ''}</div>
-                    <button id="logout-btn" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition">Sign out</button>
-                  </div>
                 </div>
+                <button id="logout-btn" class="text-sm font-medium text-red-600 hover:text-red-700 transition">Sign out</button>
               </div>
             ` : `
               <a href="auth.html" class="bg-brand-600 text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-brand-700 transition">Sign in</a>
