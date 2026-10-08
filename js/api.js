@@ -18,7 +18,7 @@ export const signOut              = (...a) => call('signOut', ...a);
 export const getSession           = (...a) => call('getSession', ...a);
 export const getProfile           = (...a) => call('getProfile', ...a);
 export const listClubs            = (...a) => call('listClubs', ...a);
-export const getManagedClubIds    = (...a) => call('getManagedClubIds', ...a);
+export const getManagedDepartmentIds = (...a) => call('getManagedDepartmentIds', ...a);
 export const listEvents           = (...a) => call('listEvents', ...a);
 export const getEvent             = (...a) => call('getEvent', ...a);
 export const createEvent          = (...a) => call('createEvent', ...a);

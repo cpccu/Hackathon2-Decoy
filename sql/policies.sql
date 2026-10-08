@@ -1,5 +1,6 @@
 alter table public.profiles enable row level security;
 alter table public.admin_clubs enable row level security;
+alter table public.admin_departments enable row level security;
 alter table public.clubs enable row level security;
 alter table public.events enable row level security;
 alter table public.rsvps enable row level security;
@@ -8,11 +9,12 @@ alter table public.courses enable row level security;
 alter table public.resources enable row level security;
 
 revoke all on public.profiles, public.clubs, public.events, public.rsvps,
-  public.admin_clubs, public.departments, public.courses, public.resources from public, anon;
-revoke all on public.admin_clubs from public, anon, authenticated;
+  public.admin_clubs, public.admin_departments, public.departments, public.courses, public.resources from public, anon;
+revoke all on public.admin_clubs, public.admin_departments from public, anon, authenticated;
 
 grant select, update on public.profiles to authenticated;
 grant select on public.admin_clubs to authenticated;
+grant select on public.admin_departments to authenticated;
 grant select, insert, update, delete on public.clubs, public.events,
   public.departments, public.courses to authenticated;
 grant select, insert, delete on public.rsvps, public.resources to authenticated;
@@ -20,6 +22,7 @@ grant select, insert, delete on public.rsvps, public.resources to authenticated;
 drop policy if exists "profiles read authenticated" on public.profiles;
 drop policy if exists "profiles update own" on public.profiles;
 drop policy if exists "admin club assignments read" on public.admin_clubs;
+drop policy if exists "admin department assignments read" on public.admin_departments;
 drop policy if exists "clubs read authenticated" on public.clubs;
 drop policy if exists "clubs admin write" on public.clubs;
 drop policy if exists "events read authenticated" on public.events;
@@ -48,6 +51,10 @@ create policy "admin club assignments read"
   on public.admin_clubs for select to authenticated
   using (admin_id = auth.uid() or public.is_super_admin());
 
+create policy "admin department assignments read"
+  on public.admin_departments for select to authenticated
+  using (admin_id = auth.uid() or public.is_super_admin());
+
 create policy "clubs read authenticated"
   on public.clubs for select to authenticated using (true);
 create policy "clubs admin write"
@@ -59,8 +66,8 @@ create policy "events read authenticated"
   using (not public.is_admin() or public.can_manage_department(department_id));
 create policy "events admin write"
   on public.events for all to authenticated
-  using (public.can_manage_club(club_id) and public.can_manage_department(department_id))
-  with check (public.can_manage_club(club_id) and public.can_manage_department(department_id));
+  using (public.can_manage_department(department_id))
+  with check (public.can_manage_department(department_id));
 
 create policy "departments read authenticated"
   on public.departments for select to authenticated using (true);
@@ -80,7 +87,7 @@ create policy "rsvps read own or admin"
     user_id = auth.uid()
     or exists (
       select 1 from public.events e
-      where e.id = rsvps.event_id and public.can_manage_club(e.club_id)
+      where e.id = rsvps.event_id and public.can_manage_department(e.department_id)
     )
   );
 create policy "rsvps insert own"

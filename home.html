@@ -80,7 +80,7 @@
             <li class="flex items-center gap-2"><span class="text-emerald-500">✓</span> Live event feed with filters</li>
             <li class="flex items-center gap-2"><span class="text-emerald-500">✓</span> One-tap RSVP</li>
             <li class="flex items-center gap-2"><span class="text-emerald-500">✓</span> Digital QR pass &amp; download</li>
-            <li class="flex items-center gap-2"><span class="text-emerald-500">✓</span> Admin QR scanner &amp; check-in</li>
+            <li class="flex items-center gap-2"><span class="text-emerald-500">✓</span> Teacher and Admin QR scanner &amp; check-in</li>
           </ul>
           <span class="inline-flex items-center gap-2 text-brand-600 font-semibold">Explore Events <span aria-hidden="true">→</span></span>
         </div>
@@ -128,15 +128,38 @@
   </section>
 
   <!-- Footer -->
-  <footer class="bg-[#00005A] text-white py-12 mt-8">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex flex-col md:flex-row items-center justify-between gap-4">
-        <div class="inline-flex h-36 w-56 items-center justify-center overflow-hidden rounded-[50%] border-2 border-[#b42332] bg-white p-3 shadow-lg sm:h-40 sm:w-64 md:h-44 md:w-72">
-          <img src="CityUniLogo.jpeg" alt="City University" class="h-full w-full object-contain">
-        </div>
-        <p class="text-slate-400 text-sm text-center">Powered by Decoy — your campus, connected.</p>
+  <footer class="mt-16 bg-[#00005A] text-white">
+    <div class="h-1 w-full bg-gradient-to-r from-[#b42332] via-red-500 to-[#b42332]"></div>
+
+    <div class="mx-auto flex max-w-7xl flex-col justify-between gap-10 px-4 py-12 sm:px-6 md:flex-row md:items-center lg:px-8">
+      <!-- Brand -->
+      <div class="flex flex-col items-center text-center md:w-1/2 md:items-start md:text-left">
+        <a href="home.html" aria-label="City University home"
+           class="inline-block rounded-2xl bg-white p-4 shadow-lg ring-1 ring-white/20 transition hover:shadow-xl focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-300">
+          <img src="CityUniLogo.jpeg" alt="City University – creating a culture of excellence"
+               class="h-20 w-auto mix-blend-multiply sm:h-24" loading="lazy">
+        </a>
+        <p class="mt-4 max-w-xs text-sm leading-relaxed text-blue-200">
+          Every club. Every note. One place. Your campus life, connected.
+        </p>
+      </div>
+
+      <!-- About -->
+      <div class="text-center md:w-1/2 md:text-right">
+        <h2 class="mb-4 text-sm font-semibold uppercase tracking-widest text-blue-300">About</h2>
+        <p class="ml-auto max-w-md text-sm leading-relaxed text-blue-100">
+          Discover events, RSVP with a digital QR pass, and share study resources with students across every department.
+        </p>
       </div>
     </div>
+
+    <div class="border-t border-white/10">
+      <div class="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 px-4 py-5 text-xs text-blue-300 sm:px-6 md:flex-row lg:px-8">
+        <p>&copy; <span id="footer-year"></span> City University. All rights reserved.</p>
+        <p>Powered by <span class="font-semibold text-white">Decoy</span> — your campus, connected.</p>
+      </div>
+    </div>
+    <script>document.getElementById('footer-year').textContent = new Date().getFullYear();</script>
   </footer>
 
   <div id="toast-root" class="fixed bottom-4 right-4 z-[200] max-w-sm w-full"></div>

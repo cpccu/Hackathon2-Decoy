@@ -140,9 +140,9 @@ export async function requireAuth() {
 export async function requireAdmin() {
   const profile = await getProfile();
   if (!profile || profile.role !== 'admin') {
-    toast('Admin access required.', 'error');
+    toast('Teacher or Admin access required.', 'error');
     setTimeout(() => { window.location.href = 'events.html'; }, 1500);
-    throw new Error('Not admin');
+    throw new Error('Not authorized for Administration.');
   }
   return profile;
 }
@@ -185,7 +185,7 @@ export async function renderNavbar({ showModuleLinks = true } = {}) {
               ${navLink('home.html',      'Home')}
               ${navLink('events.html',    'Events')}
               ${navLink('resources.html', 'Resources')}
-              ${isAdmin ? navLink('admin.html', 'Admin') : ''}
+              ${isAdmin ? navLink('admin.html', 'Administration') : ''}
               ${isAdmin ? navLink('scan.html', '📷 Scan') : ''}
             </div>
           ` : ''}
@@ -203,7 +203,7 @@ export async function renderNavbar({ showModuleLinks = true } = {}) {
                 </button>
                 <div class="absolute right-0 top-full z-50 hidden pt-2 group-hover:block group-focus-within:block">
                   <div class="w-44 bg-white border border-slate-200 rounded-xl shadow-lg py-1">
-                    <div class="px-4 py-2 text-xs text-muted border-b">${escapeHtml(profile.department || '')} ${isAdmin ? '· Admin' : ''}</div>
+                    <div class="px-4 py-2 text-xs text-muted border-b">${escapeHtml(profile.department || '')} ${isAdmin ? `· ${profile.is_super_admin ? 'Admin' : 'Teacher'}` : ''}</div>
                     <button id="logout-btn" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition">Sign out</button>
                   </div>
                 </div>
@@ -226,7 +226,7 @@ export async function renderNavbar({ showModuleLinks = true } = {}) {
           <a href="home.html" class="block py-2 text-sm font-medium text-ink hover:text-brand-600">Home</a>
           <a href="events.html" class="block py-2 text-sm font-medium text-ink hover:text-brand-600">Events</a>
           <a href="resources.html" class="block py-2 text-sm font-medium text-ink hover:text-brand-600">Resources</a>
-          ${isAdmin ? '<a href="admin.html" class="block py-2 text-sm font-medium text-ink hover:text-brand-600">Admin</a>' : ''}
+          ${isAdmin ? '<a href="admin.html" class="block py-2 text-sm font-medium text-ink hover:text-brand-600">Administration</a>' : ''}
           ${isAdmin ? '<a href="scan.html" class="block py-2 text-sm font-medium text-ink hover:text-brand-600">📷 Scan</a>' : ''}
         ` : ''}
         ${profile

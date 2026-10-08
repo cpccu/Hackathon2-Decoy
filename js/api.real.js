@@ -45,7 +45,7 @@ export async function signIn(email, password, requestedRole) {
   if (error) throw new Error(error.message);
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
-    .select('role')
+    .select('role, is_super_admin')
     .eq('id', data.user.id)
     .single();
   if (profileError) {
@@ -55,8 +55,16 @@ export async function signIn(email, password, requestedRole) {
     }
     throw new Error(profileError.message);
   }
-  if (profile.role !== requestedRole) {
-    const accountType = profile.role === 'admin' ? 'Admin / Teacher' : 'Student';
+  const roleMatches = requestedRole === 'student'
+    ? profile.role === 'student'
+    : requestedRole === 'admin'
+      ? profile.role === 'admin' && profile.is_super_admin
+      : requestedRole === 'teacher'
+        && profile.role === 'admin' && !profile.is_super_admin;
+  if (!roleMatches) {
+    const accountType = profile.role === 'admin'
+      ? (profile.is_super_admin ? 'Admin' : 'Teacher')
+      : 'Student';
     const message = `This account is registered as ${accountType}. Choose ${accountType} to sign in.`;
     const { error: signOutError } = await supabase.auth.signOut();
     if (signOutError) throw new Error(`${message} Session cleanup failed: ${signOutError.message}`);
@@ -65,9 +73,9 @@ export async function signIn(email, password, requestedRole) {
   return { user: data.user };
 }
 
-export async function createAdminInvite(clubIds = [], superAdmin = false) {
+export async function createAdminInvite(departmentIds = [], superAdmin = false) {
   const { data, error } = await supabase.rpc('create_admin_invite', {
-    p_club_ids: clubIds,
+    p_department_ids: departmentIds,
     p_super_admin: superAdmin,
   });
   if (error) throw new Error(error.message);
@@ -100,7 +108,7 @@ export async function listClubs() {
   return data;
 }
 
-export async function getManagedClubIds() {
+export async function getManagedDepartmentIds() {
   const user = await getAuthUser();
   if (!user) throw new Error('Not authenticated');
   const { data: profile, error: profileError } = await supabase
@@ -110,14 +118,14 @@ export async function getManagedClubIds() {
     .single();
   if (profileError) throw new Error(profileError.message);
   if (profile.role !== 'admin') throw new Error('Admin access required');
-  if (profile.is_super_admin) return (await listClubs()).map(club => club.id);
+  if (profile.is_super_admin) return (await listDepartments()).map(department => department.id);
 
   const { data, error } = await supabase
-    .from('admin_clubs')
-    .select('club_id')
+    .from('admin_departments')
+    .select('department_id')
     .eq('admin_id', user.id);
   if (error) throw new Error(error.message);
-  return data.map(assignment => assignment.club_id);
+  return data.map(assignment => assignment.department_id);
 }
 
 export async function listEvents({ search = '', clubId = '', type = '', range = 'all' } = {}) {
@@ -297,6 +305,7 @@ export async function listResources({ search = '', departmentId = '', semester =
     ...r,
     course_code:   r.courses?.code  || '',
     course_title:  r.courses?.title || '',
+    course_department_id: r.courses?.department_id || '',
     course_department: r.courses?.departments?.name || '',
     uploader_name: r.profiles?.full_name || 'Unknown',
   }));
@@ -316,7 +325,7 @@ export async function uploadResource({ file, title, courseId, kind, tags, onProg
 
   const { data, error: dbErr } = await supabase.from('resources').insert({
     course_id: courseId, title, kind, tags: tags || [], file_path: path, file_name: file.name, uploaded_by: user.id,
-  }).select('*, courses(code,title,departments(name)), profiles!resources_uploaded_by_fkey(full_name)').single();
+  }).select('*, courses(code,title,department_id,departments(name)), profiles!resources_uploaded_by_fkey(full_name)').single();
 
   if (dbErr) {
     const { error: rollbackErr } = await supabase.storage.from('resources').remove([path]);
@@ -329,6 +338,7 @@ export async function uploadResource({ file, title, courseId, kind, tags, onProg
     ...data,
     course_code: data.courses?.code || '',
     course_title: data.courses?.title || '',
+    course_department_id: data.courses?.department_id || '',
     course_department: data.courses?.departments?.name || '',
     uploader_name: data.profiles?.full_name || '',
   };

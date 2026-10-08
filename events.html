@@ -84,13 +84,39 @@
     </div>
   </main>
 
-  <footer class="mt-8 bg-[#00005A] py-12 text-white">
-    <div class="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-4 sm:px-6 md:flex-row lg:px-8">
-      <div class="inline-flex h-36 w-56 items-center justify-center overflow-hidden rounded-[50%] border-2 border-[#b42332] bg-white p-3 shadow-lg sm:h-40 sm:w-64 md:h-44 md:w-72">
-        <img src="CityUniLogo.jpeg" alt="City University" class="h-full w-full object-contain">
+  <!-- Footer -->
+  <footer class="mt-16 bg-[#00005A] text-white">
+    <div class="h-1 w-full bg-gradient-to-r from-[#b42332] via-red-500 to-[#b42332]"></div>
+
+    <div class="mx-auto flex max-w-7xl flex-col justify-between gap-10 px-4 py-12 sm:px-6 md:flex-row md:items-center lg:px-8">
+      <!-- Brand -->
+      <div class="flex flex-col items-center text-center md:w-1/2 md:items-start md:text-left">
+        <a href="home.html" aria-label="City University home"
+           class="inline-block rounded-2xl bg-white p-4 shadow-lg ring-1 ring-white/20 transition hover:shadow-xl focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-300">
+          <img src="CityUniLogo.jpeg" alt="City University – creating a culture of excellence"
+               class="h-20 w-auto mix-blend-multiply sm:h-24" loading="lazy">
+        </a>
+        <p class="mt-4 max-w-xs text-sm leading-relaxed text-blue-200">
+          Every club. Every note. One place. Your campus life, connected.
+        </p>
       </div>
-      <p class="text-center text-sm text-slate-400">Powered by Decoy — your campus, connected.</p>
+
+      <!-- About -->
+      <div class="text-center md:w-1/2 md:text-right">
+        <h2 class="mb-4 text-sm font-semibold uppercase tracking-widest text-blue-300">About</h2>
+        <p class="ml-auto max-w-md text-sm leading-relaxed text-blue-100">
+          Discover events, RSVP with a digital QR pass, and share study resources with students across every department.
+        </p>
+      </div>
     </div>
+
+    <div class="border-t border-white/10">
+      <div class="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 px-4 py-5 text-xs text-blue-300 sm:px-6 md:flex-row lg:px-8">
+        <p>&copy; <span id="footer-year"></span> City University. All rights reserved.</p>
+        <p>Powered by <span class="font-semibold text-white">Decoy</span> — your campus, connected.</p>
+      </div>
+    </div>
+    <script>document.getElementById('footer-year').textContent = new Date().getFullYear();</script>
   </footer>
 
   <div id="toast-root" class="fixed bottom-4 right-4 z-[200] max-w-sm w-full"></div>
@@ -98,12 +124,12 @@
 
   <script type="module">
     import { renderNavbar, requireAuth, toast, skeletonCards, emptyState, escapeHtml, formatDateTime, debounce, openModal, closeModal } from './js/app.js';
-    import { listClubs, listDepartments, getManagedClubIds, listEvents, getRsvpCounts, getMyRsvps, createEvent, updateEvent, deleteEvent, getProfile } from './js/api.js';
+    import { listClubs, listDepartments, getManagedDepartmentIds, listEvents, getRsvpCounts, getMyRsvps, createEvent, updateEvent, deleteEvent, getProfile } from './js/api.js';
 
     // Make closeModal globally accessible for inline onclick handlers
     window.AppModule = { closeModal };
 
-    let _profile = null, _clubs = [], _departments = [], _managedClubIds = new Set(), _rsvpIds = new Set(), _counts = {}, _eventsById = new Map(), _filters = { search:'', clubId:'', type:'', range:'upcoming' };
+    let _profile = null, _clubs = [], _departments = [], _managedDepartmentIds = new Set(), _rsvpIds = new Set(), _counts = {}, _eventsById = new Map(), _filters = { search:'', clubId:'', type:'', range:'upcoming' };
 
     async function init() {
       renderNavbar();
@@ -111,7 +137,7 @@
 
       _profile = await getProfile();
       const isAdmin = _profile?.role === 'admin';
-      if (isAdmin) _managedClubIds = new Set(await getManagedClubIds());
+      if (isAdmin) _managedDepartmentIds = new Set(await getManagedDepartmentIds());
 
       if (isAdmin) {
         const btn = document.getElementById('new-event-btn');
@@ -216,7 +242,7 @@
                 <a href="event.html?id=${ev.id}" class="flex-1 text-center bg-brand-600 text-white text-sm font-semibold py-2 rounded-lg hover:bg-brand-700 transition">
                   ${rsvped ? 'View Pass' : isPast ? 'View Details' : 'See Details'}
                 </a>
-                ${isAdmin && (_profile.is_super_admin || _managedClubIds.has(ev.club_id)) ? `
+                ${isAdmin && (_profile.is_super_admin || _managedDepartmentIds.has(ev.department_id)) ? `
                   <button data-event-action="edit" data-event-id="${escapeHtml(ev.id)}"
                     class="p-2 text-brand-600 hover:text-brand-800 hover:bg-brand-50 rounded-lg transition" title="Edit event" aria-label="Edit ${escapeHtml(ev.title)}">
                     ✏️
@@ -242,11 +268,10 @@
     function openEventModal(event = null) {
       const isEditing = Boolean(event);
       const clubOptions = _clubs
-        .filter(club => _profile?.is_super_admin || _managedClubIds.has(club.id))
         .map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
       const departmentOptions = _departments
-        .filter(department => _profile?.is_super_admin || department.name === _profile?.department)
-        .map(department => `<option value="${department.id}" ${event?.department_id === department.id || (!event && department.name === _profile?.department) ? 'selected' : ''}>${escapeHtml(department.name)}</option>`)
+        .filter(department => _profile?.is_super_admin || _managedDepartmentIds.has(department.id))
+        .map((department, index) => `<option value="${department.id}" ${event?.department_id === department.id || (!event && (department.name === _profile?.department || (index === 0 && !_departments.some(item => item.name === _profile?.department)))) ? 'selected' : ''}>${escapeHtml(department.name)}</option>`)
         .join('');
       const localStartsAt = event
         ? new Date(new Date(event.starts_at).getTime() - new Date(event.starts_at).getTimezoneOffset() * 60000).toISOString().slice(0, 16)

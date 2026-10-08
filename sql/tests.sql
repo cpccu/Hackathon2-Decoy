@@ -1,11 +1,11 @@
 -- Run these read-only checks as the Supabase project owner after schema.sql,
 -- policies.sql, and seed.sql have completed.
 
--- Expected: all ten application tables report row_security = true.
+-- Expected: all application tables report row_security = true.
 select schemaname, tablename, rowsecurity
 from pg_tables
 where schemaname = 'public'
-  and tablename in ('profiles', 'admin_invites', 'pending_admin_signups', 'admin_clubs', 'clubs', 'events', 'rsvps', 'departments', 'courses', 'resources')
+  and tablename in ('profiles', 'admin_invites', 'pending_admin_signups', 'admin_clubs', 'admin_departments', 'clubs', 'events', 'rsvps', 'departments', 'courses', 'resources')
 order by tablename;
 
 -- Expected: the private resources bucket exists (public = false).
@@ -13,7 +13,8 @@ select id, name, public
 from storage.buckets
 where id = 'resources';
 
--- Expected: these functions exist with the expected signatures.
+-- Expected: these functions exist with the expected signatures. Admin invite
+-- passes are scoped by department IDs rather than club IDs.
 select
   to_regprocedure('public.rsvp_counts()') as rsvp_counts,
   to_regprocedure('public.check_in_rsvp(uuid)') as check_in_rsvp,
@@ -35,7 +36,7 @@ union all
 select 'events', count(*) from public.events;
 
 -- Expected: 3 removable demo resources after rerunning seed.sql once the
--- faculty/root profile exists.
+-- Admin profile exists.
 select count(*) as demo_resource_count
 from public.resources
 where title in (
@@ -52,7 +53,7 @@ where title in (
 select tablename, policyname, roles, cmd
 from pg_policies
 where schemaname = 'public'
-  and tablename in ('profiles', 'admin_clubs', 'clubs', 'events', 'rsvps', 'departments', 'courses', 'resources')
+  and tablename in ('profiles', 'admin_clubs', 'admin_departments', 'clubs', 'events', 'rsvps', 'departments', 'courses', 'resources')
 order by tablename, policyname;
 
 -- Complete signup, RLS, RSVP-capacity, and storage checks with authenticated

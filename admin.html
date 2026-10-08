@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin – City University</title>
-  <meta name="description" content="Manage one-time admin invitation passes for City University.">
+  <title>Administration – City University</title>
+  <meta name="description" content="Manage department-scoped invitation passes for City University.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
@@ -24,23 +24,23 @@
 
   <main class="mx-auto w-full max-w-3xl flex-1 px-4 py-10 sm:px-6 lg:px-8">
     <section class="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm sm:p-8">
-      <p class="mb-2 text-sm font-semibold uppercase tracking-wide text-brand-600">Admin tools</p>
-      <h1 class="text-3xl font-extrabold">Admin invitations</h1>
+      <p class="mb-2 text-sm font-semibold uppercase tracking-wide text-brand-600">Administration</p>
+      <h1 class="text-3xl font-extrabold">Teacher invitations</h1>
       <p class="mt-3 text-muted">
-        Create a one-time pass for a teacher or a senior student who has been approved by faculty or an admin.
-        Each pass grants access only to the selected club(s). Faculty/root admins can invite another faculty/root admin.
+        Create a one-time pass for an approved teacher or senior student. Each teacher pass grants access only to the selected department(s).
+        Admins can issue a separate full-access Admin pass.
       </p>
 
-      <fieldset id="club-scope-group" class="mt-6">
-        <legend class="mb-2 text-sm font-semibold">Clubs this admin may manage</legend>
-        <div id="club-options" class="grid gap-2 sm:grid-cols-2">
-          <p class="text-sm text-muted">Loading assigned clubs…</p>
+      <fieldset id="department-scope-group" class="mt-6">
+        <legend class="mb-2 text-sm font-semibold">Departments this teacher may manage</legend>
+        <div id="department-options" class="grid gap-2 sm:grid-cols-2">
+          <p class="text-sm text-muted">Loading assigned departments…</p>
         </div>
       </fieldset>
 
       <label id="root-admin-option" class="mt-5 hidden flex items-start gap-3 rounded-xl border border-slate-200 p-4 text-sm">
         <input id="root-admin-checkbox" type="checkbox" class="mt-1 accent-brand-600">
-        <span><strong>Faculty / root admin</strong><br><span class="text-muted">Full access to every club and admin tools.</span></span>
+        <span><strong>Admin (full access)</strong><br><span class="text-muted">Full access across every department and Administration tools.</span></span>
       </label>
 
       <button id="create-invite-btn" type="button"
@@ -64,17 +64,43 @@
     </section>
   </main>
 
-  <footer class="mt-8 bg-[#00005A] py-12 text-white">
-    <div class="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-4 sm:px-6 md:flex-row lg:px-8">
-      <div class="inline-flex h-36 w-56 items-center justify-center overflow-hidden rounded-[50%] border-2 border-[#b42332] bg-white px-5 sm:h-40 sm:w-64 md:h-44 md:w-72">
-        <img src="CityUniLogo.jpeg" alt="City University" class="h-full w-full object-contain">
+  <!-- Footer -->
+  <footer class="mt-16 bg-[#00005A] text-white">
+    <div class="h-1 w-full bg-gradient-to-r from-[#b42332] via-red-500 to-[#b42332]"></div>
+
+    <div class="mx-auto flex max-w-7xl flex-col justify-between gap-10 px-4 py-12 sm:px-6 md:flex-row md:items-center lg:px-8">
+      <!-- Brand -->
+      <div class="flex flex-col items-center text-center md:w-1/2 md:items-start md:text-left">
+        <a href="home.html" aria-label="City University home"
+           class="inline-block rounded-2xl bg-white p-4 shadow-lg ring-1 ring-white/20 transition hover:shadow-xl focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-300">
+          <img src="CityUniLogo.jpeg" alt="City University – creating a culture of excellence"
+               class="h-20 w-auto mix-blend-multiply sm:h-24" loading="lazy">
+        </a>
+        <p class="mt-4 max-w-xs text-sm leading-relaxed text-blue-200">
+          Every club. Every note. One place. Your campus life, connected.
+        </p>
       </div>
-      <p class="text-center text-sm text-blue-200">Powered by Decoy — your campus, connected.</p>
+
+      <!-- About -->
+      <div class="text-center md:w-1/2 md:text-right">
+        <h2 class="mb-4 text-sm font-semibold uppercase tracking-widest text-blue-300">About</h2>
+        <p class="ml-auto max-w-md text-sm leading-relaxed text-blue-100">
+          Discover events, RSVP with a digital QR pass, and share study resources with students across every department.
+        </p>
+      </div>
     </div>
+
+    <div class="border-t border-white/10">
+      <div class="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 px-4 py-5 text-xs text-blue-300 sm:px-6 md:flex-row lg:px-8">
+        <p>&copy; <span id="footer-year"></span> City University. All rights reserved.</p>
+        <p>Powered by <span class="font-semibold text-white">Decoy</span> — your campus, connected.</p>
+      </div>
+    </div>
+    <script>document.getElementById('footer-year').textContent = new Date().getFullYear();</script>
   </footer>
 
   <script type="module">
-    import { createAdminInvite, getManagedClubIds, listClubs } from './js/api.js';
+    import { createAdminInvite, getManagedDepartmentIds, listDepartments } from './js/api.js';
     import { escapeHtml, renderNavbar, requireAdmin } from './js/app.js';
 
     const createButton = document.getElementById('create-invite-btn');
@@ -82,8 +108,8 @@
     const inviteResult = document.getElementById('invite-result');
     const inviteCode = document.getElementById('invite-code');
     const copyStatus = document.getElementById('copy-status');
-    const clubScopeGroup = document.getElementById('club-scope-group');
-    const clubOptions = document.getElementById('club-options');
+    const departmentScopeGroup = document.getElementById('department-scope-group');
+    const departmentOptions = document.getElementById('department-options');
     const rootAdminOption = document.getElementById('root-admin-option');
     const rootAdminCheckbox = document.getElementById('root-admin-checkbox');
     const inviteScope = document.getElementById('invite-scope');
@@ -91,15 +117,15 @@
     try {
       const profile = await requireAdmin();
       await renderNavbar();
-      const [clubs, managedClubIds] = await Promise.all([listClubs(), getManagedClubIds()]);
-      const manageableClubs = clubs.filter(club => managedClubIds.includes(club.id));
-      clubOptions.innerHTML = manageableClubs.length
-        ? manageableClubs.map(club => `
+      const [departments, managedDepartmentIds] = await Promise.all([listDepartments(), getManagedDepartmentIds()]);
+      const manageableDepartments = departments.filter(department => managedDepartmentIds.includes(department.id));
+      departmentOptions.innerHTML = manageableDepartments.length
+        ? manageableDepartments.map(department => `
           <label class="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm">
-            <input type="checkbox" name="invite-club" value="${escapeHtml(club.id)}" class="accent-brand-600">
-            <span>${escapeHtml(club.name)}</span>
+            <input type="checkbox" name="invite-department" value="${escapeHtml(department.id)}" class="accent-brand-600">
+            <span>${escapeHtml(department.name)}</span>
           </label>`).join('')
-        : '<p class="text-sm text-muted">No clubs are assigned to your account.</p>';
+        : '<p class="text-sm text-muted">No departments are assigned to your account.</p>';
       if (profile.is_super_admin) rootAdminOption.classList.remove('hidden');
     } catch (error) {
       inviteError.textContent = error.message || 'Admin access is required.';
@@ -107,8 +133,8 @@
     }
 
     rootAdminCheckbox.addEventListener('change', () => {
-      clubScopeGroup.classList.toggle('opacity-50', rootAdminCheckbox.checked);
-      clubScopeGroup.querySelectorAll('input').forEach(input => { input.disabled = rootAdminCheckbox.checked; });
+      departmentScopeGroup.classList.toggle('opacity-50', rootAdminCheckbox.checked);
+      departmentScopeGroup.querySelectorAll('input').forEach(input => { input.disabled = rootAdminCheckbox.checked; });
     });
 
     createButton.addEventListener('click', async () => {
@@ -118,14 +144,14 @@
       createButton.textContent = 'Creating pass…';
       try {
         const superAdmin = rootAdminCheckbox.checked;
-        const selectedClubs = [...clubOptions.querySelectorAll('input:checked')].map(input => input.value);
-        if (!superAdmin && selectedClubs.length === 0) {
-          throw new Error('Select at least one club for this admin pass.');
+        const selectedDepartments = [...departmentOptions.querySelectorAll('input:checked')].map(input => input.value);
+        if (!superAdmin && selectedDepartments.length === 0) {
+          throw new Error('Select at least one department for this teacher pass.');
         }
-        inviteCode.textContent = await createAdminInvite(selectedClubs, superAdmin);
+        inviteCode.textContent = await createAdminInvite(selectedDepartments, superAdmin);
         inviteScope.textContent = superAdmin
-          ? 'Faculty/root admin pass created. Share it directly with the approved faculty member.'
-          : `Club admin pass created for: ${[...clubOptions.querySelectorAll('input:checked')].map(input => input.parentElement.textContent.trim()).join(', ')}.`;
+          ? 'Admin pass created. Share it directly with the approved person.'
+          : `Teacher pass created for: ${[...departmentOptions.querySelectorAll('input:checked')].map(input => input.parentElement.textContent.trim()).join(', ')}.`;
         inviteResult.classList.remove('hidden');
       } catch (error) {
         inviteError.textContent = error.message || 'Could not create an invite pass.';

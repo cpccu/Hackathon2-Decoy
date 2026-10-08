@@ -3,9 +3,9 @@
 **CampusOS brings City University events and academic resources into one place.**
 
 Students can discover campus events, RSVP, and access a digital pass. They can
-also find or share course materials through a searchable resource hub. Club and
-department administrators have the tools to manage events and review resources
-within their assigned responsibilities.
+also find or share course materials through a searchable resource hub. Teachers
+can manage events and review resources within the departments assigned to
+their account. Admins have full access.
 
 ## Contents
 
@@ -108,12 +108,18 @@ Run these scripts in the Supabase SQL Editor, in order:
 1. [`sql/schema.sql`](./sql/schema.sql) — tables, relationships, triggers, and
    database functions.
 2. [`sql/policies.sql`](./sql/policies.sql) — RLS and Storage access policies.
-3. Create and promote the initial faculty/root administrator as described
+3. Create and promote the initial Admin as described
    below.
 4. [`sql/seed.sql`](./sql/seed.sql) — sample clubs, departments, courses,
    events, and demo resources.
 5. [`sql/tests.sql`](./sql/tests.sql) — read-only checks of schema, policies,
    seed data, and demo resource count.
+
+For an existing Supabase project, rerun `schema.sql` and `policies.sql` after
+updating the application. The schema adds department assignments for existing
+teachers from their profile department and migrates outstanding invitation
+passes where possible. Keep the existing club assignment tables; they are no
+longer used to authorize event management.
 
 If the Supabase project already contains older `events` or `resources` tables,
 review the migration and backup behavior documented in
@@ -121,7 +127,7 @@ review the migration and backup behavior documented in
 backup tables unless you have separately confirmed their data is no longer
 needed.
 
-### Create the initial administrator
+### Create the initial Admin account
 
 1. In Supabase, disable email confirmation for this demo under **Authentication
    → Providers → Email**.
@@ -147,18 +153,20 @@ needed.
    check that the Auth user exists and has a profile before proceeding.
 
 4. Run `sql/seed.sql` after promotion. Its three `[DEMO]` resource records are
-   associated with this root administrator. The seed script is safe to rerun.
+   associated with this Admin account. The seed script is safe to rerun.
 
 For a local-only demonstration, the documented starter account is:
 
 | Role | Email | Password |
 |---|---|---|
-| Faculty/root admin | `admin@campusos.test` | `Admin@12345` |
+| Admin | `admin@campusos.test` | `Admin@12345` |
 
 Create the user in Supabase Auth and set its password to the listed value if
 you want to use this account. This is a demo credential only: change it or
 remove the account before any public or production use. Students can create
-accounts using the signup page. Admin accounts require a one-time invitation.
+accounts using the signup page. Teacher accounts require a one-time
+department-scoped invitation from an authorized Teacher or Admin. Only an
+Admin can issue a full-access Admin invitation.
 Student IDs for student and senior-student-admin accounts must contain exactly
 16 digits; leading zeroes are preserved as part of the ID.
 
@@ -180,13 +188,15 @@ button in the browser is not an authorization boundary.
 | Account | Events | RSVP and check-in | Resources |
 |---|---|---|---|
 | Student | Can view events across departments | Can RSVP to events and use their own pass | Can upload; uploads wait for department approval |
-| Department/club admin | Can view events for their department; can manage only assigned clubs and authorized departments | Cannot RSVP; can check in attendees for assigned clubs | Can review resources for their department |
-| Faculty/root admin | Can view and manage events across departments and clubs | Cannot RSVP; can check in attendees | Can review all departments and manage resources |
+| Teacher | Can view and manage events in assigned departments | Cannot RSVP; can check in attendees for assigned departments | Can review resources for assigned departments |
+| Admin | Can view and manage events across departments | Cannot RSVP; can check in attendees | Can review all departments and manage resources |
 
-Admin invitations are one-time passes. Club administrators can issue invites
-only within their permitted club scope; only faculty/root administrators can
-issue a faculty/root invitation. A profile's admin and root privileges cannot
-be granted or changed by frontend requests.
+Teacher invitations are one-time passes scoped to selected departments. A
+Teacher can invite another Teacher only to departments they manage. Admins can
+also issue full-access Admin invitations. The login page distinguishes Admin
+from Teacher accounts, while both are stored as `admin` in the database.
+Account roles and department assignments cannot be changed by frontend
+requests.
 
 ## Pages and project layout
 
@@ -197,7 +207,7 @@ be granted or changed by frontend requests.
 | [`events.html`](./events.html) | Event feed, filters, and authorized event management |
 | [`event.html`](./event.html) | Event information, student pass, and authorized attendee list |
 | [`scan.html`](./scan.html) | Administrator QR and manual check-in |
-| [`admin.html`](./admin.html) | Administrator invitation management |
+| [`admin.html`](./admin.html) | Department-scoped Teacher and Admin invitation management |
 | [`resources.html`](./resources.html) | Resource search, upload, review, and downloads |
 | [`js/`](./js/) | Shared UI, API gateway, real and mock data implementations |
 | [`sql/`](./sql/) | Supabase schema, security policies, seed data, and checks |
@@ -218,18 +228,18 @@ remain in the private Storage bucket and use signed links.
 ## Verification checklist
 
 Run [`sql/tests.sql`](./sql/tests.sql) in the Supabase SQL Editor after the
-database scripts. Its demo resource count should be **3** after the root
-administrator has been created/promoted and `seed.sql` has been run.
+database scripts. Its demo resource count should be **3** after the initial
+Admin account has been created/promoted and `seed.sql` has been run.
 
 Then sign in through the local app and check:
 
-- Student signup creates a student profile; admin signup requires a valid
-  invitation.
-- Login rejects a mismatch between the selected account type and profile role.
-- Students can see events across departments, while department admins see only
-  their department's events and the faculty/root admin sees all.
-- Students can RSVP and use their pass; admin accounts cannot RSVP.
-- Authorized admins can edit assigned events, view attendee details, and scan
+- Student signup creates a student profile; Teacher and Admin signup require
+  matching one-time invitations.
+- Login distinguishes Student, Teacher, and Admin accounts.
+- Students can see events across departments, while Teachers see only assigned
+  departments and Admins see all.
+- Students can RSVP and use their pass; Teacher and Admin accounts cannot RSVP.
+- Authorized Teachers can edit assigned events, view attendee details, and scan
   or manually check in a pass. A second scan reports that the attendee is
   already checked in.
 - Resource search and filters work. Student uploads remain pending until the
@@ -249,14 +259,14 @@ application error.
 - RLS is the authority for database access. The publishable/anon key is not a
   secret and must be paired with correct RLS policies.
 - The application must never use a `service_role` key in the browser.
-- Admin role and club scope are derived from protected invitation records.
+- Teacher/Admin role and department scope are derived from protected invitation
+  records.
 - RSVP creation is restricted to student profiles. Check-in is performed by a
   restricted database function; clients cannot directly update RSVP records.
 - The `resources` Storage bucket is private. Uploaded files use a path scoped to
   the uploader, and downloads use signed URLs that expire after 60 seconds.
 - Student resource uploads are private while pending. Approval is limited to
-  an administrator responsible for the course department or the faculty/root
-  administrator.
+  a Teacher responsible for the course department or an Admin.
 - The `[DEMO]` resource text files are non-sensitive static examples served
   with the site, not private Storage objects. Do not use this mechanism for
   user uploads or private material.

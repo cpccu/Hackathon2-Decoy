@@ -70,12 +70,14 @@ create table if not exists public.admin_invites (
   redeemed_by uuid unique,
   target_super_admin boolean not null default false,
   club_ids uuid[] not null default '{}',
+  department_ids uuid[] not null default '{}',
   created_at timestamptz not null default now(),
   redeemed_at timestamptz
 );
 
 alter table public.admin_invites add column if not exists target_super_admin boolean not null default false;
 alter table public.admin_invites add column if not exists club_ids uuid[] not null default '{}';
+alter table public.admin_invites add column if not exists department_ids uuid[] not null default '{}';
 
 alter table public.admin_invites enable row level security;
 revoke all on public.admin_invites from public, anon, authenticated;
@@ -95,8 +97,12 @@ create table if not exists public.admin_clubs (
 create table if not exists public.pending_admin_signups (
   user_id uuid primary key,
   is_super_admin boolean not null,
-  club_ids uuid[] not null default '{}'
+  club_ids uuid[] not null default '{}',
+  department_ids uuid[] not null default '{}'
 );
+
+alter table public.pending_admin_signups
+  add column if not exists department_ids uuid[] not null default '{}';
 
 alter table public.pending_admin_signups enable row level security;
 revoke all on public.pending_admin_signups from public, anon, authenticated;
@@ -113,7 +119,7 @@ declare
   invite_code text := new.raw_user_meta_data->>'admin_invite_code';
   matched_invite text;
   assigned_super_admin boolean;
-  assigned_club_ids uuid[];
+  assigned_department_ids uuid[];
 begin
   if requested_role not in ('student', 'admin') then
     raise exception 'Invalid account type';
@@ -130,7 +136,7 @@ begin
     end if;
     if admin_kind = 'teacher'
        and nullif(trim(new.raw_user_meta_data->>'staff_id'), '') is null then
-      raise exception 'A teacher/admin ID is required';
+      raise exception 'A teacher ID is required';
     elsif admin_kind = 'senior_student'
        and coalesce(new.raw_user_meta_data->>'student_id', '') !~ '^[0-9]{16}$' then
       raise exception 'Student ID must contain exactly 16 digits for senior-student admins';
@@ -143,18 +149,26 @@ begin
     set redeemed_by = new.id, redeemed_at = now()
     where code_hash = encode(digest(trim(invite_code), 'sha256'), 'hex')
       and redeemed_by is null
-    returning code_hash, target_super_admin, club_ids
-    into matched_invite, assigned_super_admin, assigned_club_ids;
+    returning code_hash, target_super_admin, department_ids
+    into matched_invite, assigned_super_admin, assigned_department_ids;
 
     if matched_invite is null then
       raise exception 'Admin invite code is invalid or already used';
     end if;
     if assigned_super_admin and admin_kind is distinct from 'teacher' then
-      raise exception 'Faculty/root admin passes are only valid for teacher accounts';
+      raise exception 'Admin passes are only valid for teacher accounts';
+    end if;
+    if not assigned_super_admin and not exists (
+      select 1
+      from public.departments d
+      where d.id = any(assigned_department_ids)
+        and d.name = nullif(trim(new.raw_user_meta_data->>'department'), '')
+    ) then
+      raise exception 'Choose a department assigned to this teacher pass';
     end if;
 
-    insert into public.pending_admin_signups (user_id, is_super_admin, club_ids)
-    values (new.id, assigned_super_admin, assigned_club_ids);
+    insert into public.pending_admin_signups (user_id, is_super_admin, department_ids)
+    values (new.id, assigned_super_admin, assigned_department_ids);
   end if;
 
   new.raw_user_meta_data := coalesce(new.raw_user_meta_data, '{}'::jsonb) - 'admin_invite_code';
@@ -172,11 +186,11 @@ declare
   requested_role text := coalesce(new.raw_user_meta_data->>'requested_role', 'student');
   assigned_role text := 'student';
   assigned_super_admin boolean := false;
-  assigned_club_ids uuid[] := '{}';
+  assigned_department_ids uuid[] := '{}';
 begin
   if requested_role = 'admin' then
-    select is_super_admin, club_ids
-    into assigned_super_admin, assigned_club_ids
+    select is_super_admin, department_ids
+    into assigned_super_admin, assigned_department_ids
     from public.pending_admin_signups
     where user_id = new.id
     for update;
@@ -198,9 +212,9 @@ begin
   );
 
   if assigned_role = 'admin' and not assigned_super_admin then
-    insert into public.admin_clubs (admin_id, club_id)
-    select new.id, assigned.club_id
-    from unnest(assigned_club_ids) as assigned(club_id);
+    insert into public.admin_departments (admin_id, department_id)
+    select new.id, assigned.department_id
+    from unnest(assigned_department_ids) as assigned(department_id);
   end if;
   if assigned_role = 'admin' then
     delete from public.pending_admin_signups where user_id = new.id;
@@ -247,6 +261,30 @@ create table if not exists public.departments (
   id uuid primary key default gen_random_uuid(),
   name text not null unique
 );
+
+create table if not exists public.admin_departments (
+  admin_id uuid not null references public.profiles(id) on delete cascade,
+  department_id uuid not null references public.departments(id) on delete cascade,
+  primary key (admin_id, department_id)
+);
+
+insert into public.admin_departments (admin_id, department_id)
+select p.id, d.id
+from public.profiles p
+join public.departments d on d.name = p.department
+where p.role = 'admin' and not p.is_super_admin
+on conflict do nothing;
+
+update public.admin_invites i
+set department_ids = (
+  select array_agg(ad.department_id order by ad.department_id)
+  from public.admin_departments ad
+  where ad.admin_id = i.created_by
+)
+where not i.target_super_admin
+  and i.redeemed_by is null
+  and cardinality(i.department_ids) = 0
+  and exists (select 1 from public.admin_departments ad where ad.admin_id = i.created_by);
 
 alter table public.events
   add column if not exists department_id uuid references public.departments(id) on delete restrict;
@@ -312,6 +350,7 @@ create index if not exists rsvps_event_id_idx on public.rsvps (event_id);
 create index if not exists resources_course_id_idx on public.resources (course_id);
 create index if not exists resources_tags_idx on public.resources using gin (tags);
 create index if not exists admin_clubs_club_id_idx on public.admin_clubs (club_id);
+create index if not exists admin_departments_department_id_idx on public.admin_departments (department_id);
 create index if not exists resources_status_idx on public.resources (status);
 
 create or replace function public.is_admin()
@@ -363,16 +402,13 @@ set search_path = public
 as $$
   select public.is_super_admin()
     or exists (
-      select 1
-      from public.profiles p
-      join public.departments d on d.name = p.department
-      where p.id = auth.uid()
-        and p.role = 'admin'
-        and d.id = p_department_id
+      select 1 from public.admin_departments
+      where admin_id = auth.uid() and department_id = p_department_id
     );
 $$;
 
-create or replace function public.create_admin_invite(p_club_ids uuid[] default '{}', p_super_admin boolean default false)
+drop function if exists public.create_admin_invite(uuid[], boolean);
+create or replace function public.create_admin_invite(p_department_ids uuid[] default '{}', p_super_admin boolean default false)
 returns text
 language plpgsql
 security definer
@@ -381,35 +417,35 @@ as $$
 declare
   invite_code text;
   is_super_invite boolean := coalesce(p_super_admin, false);
-  requested_count integer := cardinality(coalesce(p_club_ids, '{}'::uuid[]));
+  requested_count integer := cardinality(coalesce(p_department_ids, '{}'::uuid[]));
   manageable_count integer;
 begin
   if not public.is_admin() then
     raise exception 'Admin access required';
   end if;
   if is_super_invite and not public.is_super_admin() then
-    raise exception 'Only a faculty/root admin can invite a faculty/root admin';
+    raise exception 'Only an Admin can issue an Admin pass';
   end if;
   if not is_super_invite and requested_count = 0 then
-    raise exception 'Select at least one club for this admin invite';
+    raise exception 'Select at least one department for this teacher invite';
   end if;
   if not is_super_invite then
-    select count(distinct requested.club_id) into manageable_count
-    from unnest(coalesce(p_club_ids, '{}'::uuid[])) as requested(club_id)
-    where public.can_manage_club(requested.club_id)
-      and exists (select 1 from public.clubs where id = requested.club_id);
+    select count(distinct requested.department_id) into manageable_count
+    from unnest(coalesce(p_department_ids, '{}'::uuid[])) as requested(department_id)
+    where public.can_manage_department(requested.department_id)
+      and exists (select 1 from public.departments where id = requested.department_id);
     if manageable_count <> requested_count then
-      raise exception 'You can only assign clubs that you manage';
+      raise exception 'You can only assign departments that you manage';
     end if;
   end if;
 
   invite_code := encode(gen_random_bytes(16), 'hex');
-  insert into public.admin_invites (code_hash, created_by, target_super_admin, club_ids)
+  insert into public.admin_invites (code_hash, created_by, target_super_admin, department_ids)
   values (
     encode(digest(invite_code, 'sha256'), 'hex'),
     auth.uid(),
     is_super_invite,
-    case when is_super_invite then '{}'::uuid[] else p_club_ids end
+    case when is_super_invite then '{}'::uuid[] else p_department_ids end
   );
   return invite_code;
 end;
@@ -519,7 +555,6 @@ declare
   r public.rsvps%rowtype;
   who text;
   event_title text;
-  event_club_id uuid;
   event_department_id uuid;
   checked_in_time timestamptz;
 begin
@@ -537,10 +572,9 @@ begin
   end if;
 
   select p.full_name into who from public.profiles p where p.id = r.user_id;
-  select e.title, e.club_id, e.department_id into event_title, event_club_id, event_department_id
+  select e.title, e.department_id into event_title, event_department_id
   from public.events e where e.id = r.event_id;
-  if not public.can_manage_club(event_club_id)
-     or not public.can_manage_department(event_department_id) then
+  if not public.can_manage_department(event_department_id) then
     return json_build_object('status', 'forbidden');
   end if;
 
