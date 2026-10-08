@@ -135,8 +135,8 @@ npx serve .
 
 ```
 Hackathon2-Decoy/
-├── index.html         Landing page
-├── auth.html          Login / Signup
+├── index.html         Sign in / Sign up (site entry page)
+├── home.html          Events / Resources chooser
 ├── events.html        Event feed + filters + admin create
 ├── event.html         Detail + RSVP + QR pass
 ├── scan.html          Admin QR scanner
@@ -155,7 +155,8 @@ Hackathon2-Decoy/
 │   ├── policies.sql
 │   └── seed.sql
 ├── docs/
-│   └── FRONTEND.md
+│   ├── FRONTEND.md
+│   └── BACKEND.md
 └── .gitignore
 ```
 

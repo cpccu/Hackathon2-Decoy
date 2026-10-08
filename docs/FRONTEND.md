@@ -4,8 +4,8 @@
 
 | Page | File | Auth | Notes |
 |---|---|---|---|
-| Landing | `index.html` | No | Hero, module cards, how-it-works |
-| Auth | `auth.html` | No | Login/signup tabs, inline validation |
+| Sign in / Sign up | `index.html` | No | Site entry page; login/signup tabs and inline validation |
+| Home chooser | `home.html` | Yes | Hero and full-card Events/Resources links; no repeated module links in its navbar or footer |
 | Events feed | `events.html` | Yes | Search, filters, admin create/delete |
 | Event detail | `event.html?id=` | Yes | RSVP, QR pass, cancel, PNG download |
 | Scanner | `scan.html` | Admin | Camera + manual entry, counter, history |
@@ -40,7 +40,7 @@ npx serve .
 
 - All Supabase calls are isolated to `api.real.js`. Pages never import from Supabase directly.
 - `api.mock.js` uses the same function signatures — switching is zero-cost.
-- Navbar renders server-profile-aware — shows Scan link only for admins.
+- Navbar renders profile-aware — shows Scan link only for admins; its logo returns to `home.html`.
 - Toast system uses a singleton DOM node, auto-clears in 4s.
 - Modal traps focus, closes on Esc and backdrop click.
 - QR pass encodes the RSVP UUID only (not user data) for privacy.
@@ -52,6 +52,7 @@ npx serve .
 - Email confirmation is disabled in the Supabase project.
 - `scan.html` needs HTTPS for camera (provided by all static hosts).
 - JS logic is inlined in HTML files to avoid a build step per the spec.
+- Opening the site root shows the sign-in page. After authentication, users land on `home.html`; protected-page redirects return them to their requested page.
 
 ## Known Limitations
 

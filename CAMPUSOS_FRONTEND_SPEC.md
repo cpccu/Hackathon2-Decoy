@@ -40,8 +40,8 @@ Two modules, both using **real database operations in the final product** (no ha
 
 ```text
 Hackathon2-Decoy/
-├── index.html
-├── auth.html
+├── index.html            # site entry: login / signup
+├── home.html             # authenticated Events / Resources chooser
 ├── events.html
 ├── event.html            # uses ?id=<event uuid>
 ├── scan.html             # admin only
@@ -167,7 +167,7 @@ getDownloadUrl(filePath) -> url
 ## 5. Shared UI Module: `js/app.js`
 
 Exports:
-- `requireAuth()` redirects to `auth.html?next=<current page>` if there is no session.
+- `requireAuth()` redirects to `index.html?next=<current page>` if there is no session.
 - `requireAdmin()` redirects non-admins to `events.html` with a toast.
 - `renderNavbar()` injects the navbar into `<div id="navbar"></div>` on every page.
 - `toast(message, type)` where type is `success | error | info`.
@@ -182,14 +182,17 @@ Navbar: `CampusOS` logo | Events | Resources | (admin only: Scan) | avatar menu 
 
 ## 6. Pages and Behavior
 
-### 6.1 `index.html` (Landing)
-Hero ("Every club. Every note. One place."), two large module cards (Events, Resources) with CTAs, a three-step "How it works" row, footer with university name. If logged in, CTAs go straight to the modules; otherwise to `auth.html`.
+### 6.1 `index.html` (Sign In / Sign Up)
+The site entry page. Shows the login and signup tabs. After authentication, users go to `home.html` unless they were redirected from another protected page.
 
-### 6.2 `auth.html`
+### 6.2 `home.html` (Module chooser)
+Requires an authenticated session. Shows the CampusOS introduction and the Events and Resources cards, which link directly to those modules.
+
+### 6.3 Authentication behavior
 Centered card, Login / Signup tabs.
 - Signup fields: full name, student ID, department (select from `listDepartments()`), email, password (min 8), confirm password.
 - Inline validation, disabled button + spinner while loading, clear error messages (wrong password, email taken).
-- On success redirect to `?next=` or `events.html`. If `needsConfirmation`, show a "check your email" panel.
+- On success redirect to `?next=` or `home.html`. If `needsConfirmation`, show a "check your email" panel.
 - If already logged in, redirect away.
 
 ### 6.3 `events.html` (Feed)
@@ -269,7 +272,7 @@ tailwind.config = { theme: { extend: {
 
 1. Scaffold the folders, `.gitignore`, `config.example.js`, `config.js` (mock on), stub README.
 2. Write `api.mock.js` and `api.js` (real implementation too, even though untested).
-3. Write `app.js`, the navbar, `index.html`, `auth.html`. Verify the mock login and signup flows.
+3. Write `app.js`, the navbar, `index.html`, and `home.html`. Verify the mock login and signup flows.
 4. Events module: `events.html`, `event.html`, `events.js`, then `scan.html`, `scan.js`.
 5. Resource Hub: `resources.html`, `resources.js`.
 6. Mobile pass at 375px, empty/error/loading states, polish.

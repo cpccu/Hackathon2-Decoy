@@ -131,7 +131,7 @@ function _escHandler(e) { if (e.key === 'Escape') closeModal(); }
 export async function requireAuth() {
   const session = await getSession();
   if (!session) {
-    window.location.href = `auth.html?next=${encodeURIComponent(location.pathname + location.search)}`;
+    window.location.href = `index.html?next=${encodeURIComponent(location.pathname + location.search)}`;
     throw new Error('Not authenticated');
   }
   return session;
@@ -148,14 +148,14 @@ export async function requireAdmin() {
 }
 
 // ─── Navbar ───────────────────────────────────────────────────────────────────
-export async function renderNavbar() {
+export async function renderNavbar({ showModuleLinks = true } = {}) {
   const target = document.getElementById('navbar');
   if (!target) return;
 
   const session = await getSession();
   const profile = session ? await getProfile() : null;
   const isAdmin = profile?.role === 'admin';
-  const currentPage = location.pathname.split('/').pop() || 'index.html';
+  const currentPage = location.pathname.split('/').pop() || 'home.html';
 
   const navLink = (href, label) => {
     const active = currentPage === href ? 'text-brand-600 font-semibold' : 'text-ink hover:text-brand-600';
@@ -167,17 +167,19 @@ export async function renderNavbar() {
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between h-16">
           <!-- Logo -->
-          <a href="index.html" class="flex items-center gap-2 font-extrabold text-xl text-brand-600 tracking-tight">
-            <span class="text-2xl">🎓</span> CampusOS
+          <a href="home.html" class="flex shrink-0 items-center">
+            <img src="CityUniLogo.jpeg" alt="City University" class="h-16 w-40 object-contain">
             ${USE_MOCK ? '<span class="ml-2 text-[10px] bg-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded-full uppercase tracking-wide">Mock data</span>' : ''}
           </a>
 
           <!-- Desktop links -->
-          <div class="hidden md:flex items-center gap-6 text-sm font-medium">
-            ${navLink('events.html',    'Events')}
-            ${navLink('resources.html', 'Resources')}
-            ${isAdmin ? navLink('scan.html', '📷 Scan') : ''}
-          </div>
+          ${showModuleLinks ? `
+            <div class="hidden md:flex items-center gap-6 text-sm font-medium">
+              ${navLink('events.html',    'Events')}
+              ${navLink('resources.html', 'Resources')}
+              ${isAdmin ? navLink('scan.html', '📷 Scan') : ''}
+            </div>
+          ` : ''}
 
           <!-- Auth area -->
           <div class="flex items-center gap-3">
@@ -198,7 +200,7 @@ export async function renderNavbar() {
                 </div>
               </div>
             ` : `
-              <a href="auth.html" class="bg-brand-600 text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-brand-700 transition">Sign in</a>
+              <a href="index.html" class="bg-brand-600 text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-brand-700 transition">Sign in</a>
             `}
 
             <!-- Mobile hamburger -->
@@ -211,12 +213,14 @@ export async function renderNavbar() {
 
       <!-- Mobile menu -->
       <div id="mobile-menu" class="hidden md:hidden border-t border-slate-100 bg-white px-4 pb-4 pt-2 space-y-1">
-        <a href="events.html"    class="block py-2 text-sm font-medium text-ink hover:text-brand-600">Events</a>
-        <a href="resources.html" class="block py-2 text-sm font-medium text-ink hover:text-brand-600">Resources</a>
-        ${isAdmin ? '<a href="scan.html" class="block py-2 text-sm font-medium text-ink hover:text-brand-600">📷 Scan</a>' : ''}
+        ${showModuleLinks ? `
+          <a href="events.html" class="block py-2 text-sm font-medium text-ink hover:text-brand-600">Events</a>
+          <a href="resources.html" class="block py-2 text-sm font-medium text-ink hover:text-brand-600">Resources</a>
+          ${isAdmin ? '<a href="scan.html" class="block py-2 text-sm font-medium text-ink hover:text-brand-600">📷 Scan</a>' : ''}
+        ` : ''}
         ${profile
           ? `<button id="logout-btn-mobile" class="block w-full text-left py-2 text-sm font-medium text-red-600 hover:text-red-700">Sign out</button>`
-          : `<a href="auth.html" class="block py-2 text-sm font-medium text-brand-600">Sign in</a>`
+          : `<a href="index.html" class="block py-2 text-sm font-medium text-brand-600">Sign in</a>`
         }
       </div>
     </nav>`;

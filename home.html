@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>City University – Every club. Every note. One place.</title>
+  <meta name="description" content="The unified digital hub for City University students. Find club events, RSVP, and download academic resources — all in one place.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { theme: { extend: {
+      colors: {
+        brand: { 50:'#eef4ff', 100:'#dce9ff', 500:'#2563eb', 600:'#1d4ed8', 700:'#1e40af' },
+        accent: '#f59e0b', ink: '#0f172a', muted: '#64748b', surface: '#f8fafc'
+      },
+      fontFamily: { sans: ['Inter','system-ui','sans-serif'] },
+      animation: {
+        'fade-up':    'fadeUp 0.6s ease forwards',
+        'slide-up':   'slideUp 0.3s ease',
+        'scale-in':   'scaleIn 0.2s ease',
+        'float':      'float 3s ease-in-out infinite',
+      },
+      keyframes: {
+        fadeUp:  { '0%':{ opacity:0, transform:'translateY(20px)' }, '100%':{ opacity:1, transform:'translateY(0)' } },
+        slideUp: { '0%':{ opacity:0, transform:'translateY(10px)' }, '100%':{ opacity:1, transform:'translateY(0)' } },
+        scaleIn: { '0%':{ opacity:0, transform:'scale(0.95)' }, '100%':{ opacity:1, transform:'scale(1)' } },
+        float:   { '0%,100%':{ transform:'translateY(0)' }, '50%':{ transform:'translateY(-8px)' } },
+      }
+    }}}
+  </script>
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .gradient-hero { background: linear-gradient(135deg, #0f172a 0%, #1e40af 50%, #0f172a 100%); }
+    .card-hover { transition: all 0.3s ease; }
+    .card-hover:hover { transform: translateY(-4px); box-shadow: 0 20px 40px -12px rgba(37,99,235,0.25); }
+    .glow { box-shadow: 0 0 40px rgba(37,99,235,0.3); }
+    .text-gradient { background: linear-gradient(135deg, #60a5fa, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  </style>
+</head>
+<body class="invisible bg-surface text-ink font-sans">
+
+  <div id="navbar"></div>
+
+  <!-- Hero -->
+  <section class="gradient-hero text-white overflow-hidden relative">
+    <div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0zNiAxOGMwLTkuOTQtOC4wNi0xOC0xOC0xOFMwIDguMDYgMCAxOHM4LjA2IDE4IDE4IDE4IDE4LTguMDYgMTgtMTh6IiBmaWxsPSIjZmZmIiBmaWxsLW9wYWNpdHk9Ii4wMyIvPjwvZz48L3N2Zz4=')] opacity-20"></div>
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16 relative z-10">
+      <div class="text-center animate-fade-up">
+        <h1 class="text-5xl md:text-7xl font-black mb-6 leading-tight">
+          Every club.<br>
+          <span class="text-gradient">Every note.</span><br>
+          One place.
+        </h1>
+        <p class="text-xl md:text-2xl text-blue-200 mb-10 max-w-2xl mx-auto leading-relaxed">
+          Discover campus events to join and find the notes and study resources you need. City University brings the two essentials of student life together in one place.
+        </p>
+      </div>
+
+      <!-- Floating cards preview -->
+      <div class="mt-20 grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto opacity-80">
+        <div class="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-4 animate-float" style="animation-delay:0s">
+          <div class="text-2xl mb-2">🎭</div>
+          <div class="font-semibold">Cultural Night 2025</div>
+          <div class="text-sm text-blue-200">CU Cultural Club · Auditorium</div>
+        </div>
+        <div class="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-4 animate-float md:mt-6" style="animation-delay:1s">
+          <div class="text-2xl mb-2">📄</div>
+          <div class="font-semibold">Algorithms Midterm 2024</div>
+          <div class="text-sm text-blue-200">CSE 301 · Question Paper</div>
+        </div>
+        <div class="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-4 animate-float" style="animation-delay:2s">
+          <div class="text-2xl mb-2">🤖</div>
+          <div class="font-semibold">Robo Arena Championship</div>
+          <div class="text-sm text-blue-200">CU Robotics Club · Competition</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Module cards -->
+  <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 md:py-20">
+    <div class="grid md:grid-cols-2 gap-8">
+      <!-- Events module -->
+      <a id="events-cta-card" href="events.html" class="block bg-white rounded-3xl shadow-sm border border-slate-100 p-8 card-hover group relative overflow-hidden focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-500">
+        <div class="absolute inset-0 bg-gradient-to-br from-brand-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+        <div class="relative z-10">
+          <div class="w-16 h-16 bg-brand-50 rounded-2xl flex items-center justify-center text-3xl mb-6 group-hover:scale-110 transition-transform duration-300">📅</div>
+          <h3 class="text-2xl font-bold text-ink mb-3">Club &amp; Event Engine</h3>
+          <p class="text-muted leading-relaxed mb-6">Discover events from every club. RSVP in one tap and get a digital QR pass for check-in at the door.</p>
+          <ul class="space-y-2 text-sm text-muted mb-8">
+            <li class="flex items-center gap-2"><span class="text-emerald-500">✓</span> Live event feed with filters</li>
+            <li class="flex items-center gap-2"><span class="text-emerald-500">✓</span> One-tap RSVP</li>
+            <li class="flex items-center gap-2"><span class="text-emerald-500">✓</span> Digital QR pass &amp; download</li>
+            <li class="flex items-center gap-2"><span class="text-emerald-500">✓</span> Admin QR scanner &amp; check-in</li>
+          </ul>
+          <span class="inline-flex items-center gap-2 text-brand-600 font-semibold">Explore Events <span aria-hidden="true">→</span></span>
+        </div>
+      </a>
+
+      <!-- Resources module -->
+      <a id="resources-cta-card" href="resources.html" class="block bg-white rounded-3xl shadow-sm border border-slate-100 p-8 card-hover group relative overflow-hidden focus:outline-none focus-visible:ring-4 focus-visible:ring-amber-500">
+        <div class="absolute inset-0 bg-gradient-to-br from-amber-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+        <div class="relative z-10">
+          <div class="w-16 h-16 bg-amber-50 rounded-2xl flex items-center justify-center text-3xl mb-6 group-hover:scale-110 transition-transform duration-300">📚</div>
+          <h3 class="text-2xl font-bold text-ink mb-3">Resource Hub</h3>
+          <p class="text-muted leading-relaxed mb-6">Share and find notes, question papers, and notices organized by department, semester, and course.</p>
+          <ul class="space-y-2 text-sm text-muted mb-8">
+            <li class="flex items-center gap-2"><span class="text-emerald-500">✓</span> Dept → Semester → Course filters</li>
+            <li class="flex items-center gap-2"><span class="text-emerald-500">✓</span> Keyword &amp; tag search</li>
+            <li class="flex items-center gap-2"><span class="text-emerald-500">✓</span> Upload notes, questions, notices</li>
+            <li class="flex items-center gap-2"><span class="text-emerald-500">✓</span> Secure downloads via signed URLs</li>
+          </ul>
+          <span class="inline-flex items-center gap-2 text-amber-600 font-semibold">Explore Resources <span aria-hidden="true">→</span></span>
+        </div>
+      </a>
+    </div>
+  </section>
+
+  <!-- How it works -->
+  <section class="bg-white border-y border-slate-100 py-20">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-14">
+        <h2 class="text-4xl font-extrabold text-ink mb-3">How it works</h2>
+        <p class="text-muted text-lg">Up and running in three steps.</p>
+      </div>
+      <div class="grid md:grid-cols-3 gap-8">
+        <div class="text-center group">
+          <div class="w-20 h-20 bg-brand-50 rounded-3xl flex items-center justify-center text-4xl mx-auto mb-5 group-hover:bg-brand-100 transition-colors duration-200">🔐</div>
+          <div class="text-5xl font-black text-brand-100 mb-2">01</div>
+          <h3 class="text-xl font-bold text-ink mb-2">Sign up with your CU email</h3>
+          <p class="text-muted">Create your account in seconds. Your role and department are set automatically.</p>
+        </div>
+        <div class="text-center group">
+          <div class="w-20 h-20 bg-emerald-50 rounded-3xl flex items-center justify-center text-4xl mx-auto mb-5 group-hover:bg-emerald-100 transition-colors duration-200">🎯</div>
+          <div class="text-5xl font-black text-emerald-100 mb-2">02</div>
+          <h3 class="text-xl font-bold text-ink mb-2">Find events &amp; resources</h3>
+          <p class="text-muted">Browse the event feed, filter by club or type, or search resources by keyword and tag.</p>
+        </div>
+        <div class="text-center group">
+          <div class="w-20 h-20 bg-amber-50 rounded-3xl flex items-center justify-center text-4xl mx-auto mb-5 group-hover:bg-amber-100 transition-colors duration-200">🎟️</div>
+          <div class="text-5xl font-black text-amber-100 mb-2">03</div>
+          <h3 class="text-xl font-bold text-ink mb-2">RSVP &amp; show up</h3>
+          <p class="text-muted">RSVP with one tap, save your QR pass, and check in at the door. Or download notes for your next exam.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Stats -->
+  <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+      <div class="bg-white rounded-2xl p-6 text-center shadow-sm border border-slate-100">
+        <div class="text-4xl font-black text-brand-600 mb-1">8+</div>
+        <div class="text-muted text-sm">Active Clubs</div>
+      </div>
+      <div class="bg-white rounded-2xl p-6 text-center shadow-sm border border-slate-100">
+        <div class="text-4xl font-black text-brand-600 mb-1">5</div>
+        <div class="text-muted text-sm">Departments</div>
+      </div>
+      <div class="bg-white rounded-2xl p-6 text-center shadow-sm border border-slate-100">
+        <div class="text-4xl font-black text-brand-600 mb-1">20+</div>
+        <div class="text-muted text-sm">Courses Covered</div>
+      </div>
+      <div class="bg-white rounded-2xl p-6 text-center shadow-sm border border-slate-100">
+        <div class="text-4xl font-black text-brand-600 mb-1">∞</div>
+        <div class="text-muted text-sm">Resources to share</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="bg-ink text-white py-12 mt-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+        <div class="flex items-center">
+          <span class="inline-flex h-24 w-40 items-center justify-center overflow-hidden rounded-[50%] border-4 border-red-600 bg-white p-2">
+            <img src="CityUniLogo.jpeg" alt="City University" class="h-full w-full object-contain">
+          </span>
+        </div>
+        <p class="text-slate-400 text-sm text-center">Built for City University (CPCCU Hackathon 2). Replace scattered chats with one platform.</p>
+      </div>
+    </div>
+  </footer>
+
+  <div id="toast-root" class="fixed bottom-4 right-4 z-[200] max-w-sm w-full"></div>
+
+  <script type="module">
+    import { renderNavbar } from './js/app.js';
+    import { getSession }   from './js/api.js';
+
+    getSession().then(session => {
+      if (!session) {
+        location.replace('index.html?next=%2Fhome.html');
+        return;
+      }
+
+      document.body.classList.remove('invisible');
+      renderNavbar({ showModuleLinks: false });
+    }).catch(err => {
+      document.body.classList.remove('invisible');
+      const message = document.createElement('p');
+      message.className = 'fixed bottom-4 right-4 z-[200] max-w-sm rounded-xl bg-red-600 px-4 py-3 text-sm font-medium text-white shadow-lg';
+      message.setAttribute('role', 'alert');
+      message.textContent = `Could not check your sign-in status: ${err.message}`;
+      document.body.appendChild(message);
+    });
+  </script>
+</body>
+</html>
